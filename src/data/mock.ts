@@ -81,7 +81,7 @@ export const topProductsMetrics = [
   { name: 'Luminária LED Inteligente', revenue: 1798, units: 20, profit: 680, margin: 37.8, roas: 3.2 },
 ];
 
-export const campaigns: Campaign[] = [
+export const campaigns: MockCampaign[] = [
   { id: '1', ad_account_id: '1', platform: 'Meta', name: 'Skincare - Interesse Beleza - W18', status: 'active', budget_daily: 200, spend: 1280, impressions: 142000, clicks: 3820, cpm: 9.01, ctr: 2.69, cpc: 0.34, cpa: 18.29, conversions: 70, revenue: 8940, profit: 4520, roas: 6.98, score: 'scale' },
   { id: '2', ad_account_id: '1', platform: 'Meta', name: 'Fone BT - Lookalike 1% - W18', status: 'active', budget_daily: 150, spend: 890, impressions: 98000, clicks: 2450, cpm: 9.08, ctr: 2.50, cpc: 0.36, cpa: 22.25, conversions: 40, revenue: 5200, profit: 2180, roas: 5.84, score: 'scale' },
   { id: '3', ad_account_id: '2', platform: 'Google', name: 'Search - Fone Bluetooth Comprar', status: 'active', budget_daily: 120, spend: 720, impressions: 34000, clicks: 1200, cpm: 21.18, ctr: 3.53, cpc: 0.60, cpa: 26.67, conversions: 27, revenue: 3480, profit: 1340, roas: 4.83, score: 'watch' },
