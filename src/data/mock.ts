@@ -1,4 +1,13 @@
-import type { KPIData, HourlyData, Order, Campaign, PixPending, Notification, Integration, Product, UTMData, DailySnapshot } from '@/types/database';
+import type { KPIData, HourlyData, UTMData } from '@/types/database';
+
+// Mock-specific types (subset of DB types, no user_id required)
+type MockProduct = { id: string; name: string; sku: string; cost: number; price: number; active: boolean; created_at: string; image_url?: string };
+type MockCampaign = { id: string; ad_account_id: string; platform: string; name: string; status: 'active' | 'paused' | 'ended'; budget_daily: number; spend: number; impressions: number; clicks: number; cpm: number; ctr: number; cpc: number; cpa: number; conversions: number; revenue: number; profit: number; roas: number; score: 'scale' | 'watch' | 'cut' };
+type MockOrder = { id: string; order_number: string; created_at: string; customer_name: string; customer_phone: string; customer_email: string; product_id: string; product_name: string; platform: string; campaign_name: string; utm_source: string; utm_campaign: string; utm_content: string; utm_term: string; gross_value: number; product_cost: number; gateway_fee: number; ads_cost_attributed: number; shipping_cost: number; tax: number; net_profit: number; payment_status: 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'; payment_method: 'pix' | 'credit_card' | 'boleto' | 'debit'; state: string; city: string };
+type MockPixPending = { id: string; order_id: string; customer_name: string; customer_phone: string; product_name: string; value: number; generated_at: string; minutes_open: number; campaign_name: string; utm_source: string; status: 'pending' | 'paid' | 'expired' | 'abandoned' };
+type MockNotification = { id: string; type: string; title: string; message: string; read: boolean; created_at: string; data?: Record<string, any> };
+type MockIntegration = { id: string; name: string; platform: string; icon: string; status: 'connected' | 'disconnected' | 'error'; description: string; last_sync?: string };
+type MockDailySnapshot = { date: string; gross_revenue: number; net_revenue: number; ad_spend: number; product_cost: number; shipping_cost: number; gateway_fees: number; taxes: number; other_expenses: number; net_profit: number; margin: number; orders_approved: number; orders_pending: number; orders_refused: number; avg_ticket: number; roas: number; roi: number; approval_rate: number; pix_generated: number; pix_paid: number; pix_conversion: number };
 
 export const kpiData: KPIData[] = [
   { label: 'Faturamento Bruto', value: 'R$ 24.832,90', change: 12.4, changeLabel: 'vs ontem', tooltip: 'Total de vendas brutas do período selecionado', prefix: 'R$' },
