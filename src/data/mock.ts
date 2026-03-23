@@ -99,7 +99,7 @@ export const recentOrders: MockOrder[] = [
   { id: '6', order_number: 'TF-28436', created_at: '2024-03-23T13:40:00', customer_name: 'Pedro Santos', customer_phone: '71932109876', customer_email: 'pedro@email.com', product_id: '3', product_name: 'Luminária LED Inteligente', platform: 'Meta Ads', campaign_name: 'Luminária - Broad - W18', utm_source: 'facebook', utm_campaign: 'luminaria_broad_w18', utm_content: 'video_produto_01', utm_term: '', gross_value: 89.90, product_cost: 18.90, gateway_fee: 4.50, ads_cost_attributed: 76.00, shipping_cost: 12.00, tax: 4.50, net_profit: -26.00, payment_status: 'approved', payment_method: 'pix', state: 'BA', city: 'Salvador' },
 ];
 
-export const pixPendingData: PixPending[] = [
+export const pixPendingData: MockPixPending[] = [
   { id: '1', order_id: 'TF-28437', customer_name: 'Rafael Lima', customer_phone: '11998877665', product_name: 'Kit Skincare Premium', value: 197.90, generated_at: '2024-03-23T14:30:00', minutes_open: 8, campaign_name: 'Skincare - Interesse Beleza - W18', utm_source: 'facebook', status: 'pending' },
   { id: '2', order_id: 'TF-28438', customer_name: 'Fernanda Costa', customer_phone: '21987766554', product_name: 'Fone Bluetooth Pro Max', value: 149.90, generated_at: '2024-03-23T14:22:00', minutes_open: 16, campaign_name: 'Fone BT - Lookalike 1% - W18', utm_source: 'facebook', status: 'pending' },
   { id: '3', order_id: 'TF-28439', customer_name: 'Bruno Almeida', customer_phone: '31976655443', product_name: 'Relógio Smart Fitness', value: 247.90, generated_at: '2024-03-23T14:10:00', minutes_open: 28, campaign_name: 'Search - Relogio Smart', utm_source: 'google', status: 'pending' },
