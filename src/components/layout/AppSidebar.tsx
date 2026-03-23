@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, ShoppingCart, Megaphone, Package, Link2, DollarSign,
-  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, Zap, TrendingUp
+  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp
 } from 'lucide-react';
+import trustfyLogo from '@/assets/trustfy-logo.png';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
