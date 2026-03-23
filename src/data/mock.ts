@@ -1,4 +1,13 @@
-import type { KPIData, HourlyData, Order, Campaign, PixPending, Notification, Integration, Product, UTMData, DailySnapshot } from '@/types/database';
+import type { KPIData, HourlyData, UTMData } from '@/types/database';
+
+// Mock-specific types (subset of DB types, no user_id required)
+type MockProduct = { id: string; name: string; sku: string; cost: number; price: number; active: boolean; created_at: string; image_url?: string };
+type MockCampaign = { id: string; ad_account_id: string; platform: string; name: string; status: 'active' | 'paused' | 'ended'; budget_daily: number; spend: number; impressions: number; clicks: number; cpm: number; ctr: number; cpc: number; cpa: number; conversions: number; revenue: number; profit: number; roas: number; score: 'scale' | 'watch' | 'cut' };
+type MockOrder = { id: string; order_number: string; created_at: string; customer_name: string; customer_phone: string; customer_email: string; product_id: string; product_name: string; platform: string; campaign_name: string; utm_source: string; utm_campaign: string; utm_content: string; utm_term: string; gross_value: number; product_cost: number; gateway_fee: number; ads_cost_attributed: number; shipping_cost: number; tax: number; net_profit: number; payment_status: 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'; payment_method: 'pix' | 'credit_card' | 'boleto' | 'debit'; state: string; city: string };
+type MockPixPending = { id: string; order_id: string; customer_name: string; customer_phone: string; product_name: string; value: number; generated_at: string; minutes_open: number; campaign_name: string; utm_source: string; status: 'pending' | 'paid' | 'expired' | 'abandoned' };
+type MockNotification = { id: string; type: string; title: string; message: string; read: boolean; created_at: string; data?: Record<string, any> };
+type MockIntegration = { id: string; name: string; platform: string; icon: string; status: 'connected' | 'disconnected' | 'error'; description: string; last_sync?: string };
+type MockDailySnapshot = { date: string; gross_revenue: number; net_revenue: number; ad_spend: number; product_cost: number; shipping_cost: number; gateway_fees: number; taxes: number; other_expenses: number; net_profit: number; margin: number; orders_approved: number; orders_pending: number; orders_refused: number; avg_ticket: number; roas: number; roi: number; approval_rate: number; pix_generated: number; pix_paid: number; pix_conversion: number };
 
 export const kpiData: KPIData[] = [
   { label: 'Faturamento Bruto', value: 'R$ 24.832,90', change: 12.4, changeLabel: 'vs ontem', tooltip: 'Total de vendas brutas do período selecionado', prefix: 'R$' },
@@ -56,7 +65,7 @@ export const platformSalesData = [
   { name: 'Orgânico', sales: 5, revenue: 1023, color: 'hsl(152, 69%, 45%)' },
 ];
 
-export const topProducts: Product[] = [
+export const topProducts: MockProduct[] = [
   { id: '1', name: 'Kit Skincare Premium', sku: 'SKC-001', cost: 32.50, price: 197.90, active: true, created_at: '2024-01-15' },
   { id: '2', name: 'Fone Bluetooth Pro Max', sku: 'FBT-002', cost: 28.00, price: 149.90, active: true, created_at: '2024-02-01' },
   { id: '3', name: 'Luminária LED Inteligente', sku: 'LUM-003', cost: 18.90, price: 89.90, active: true, created_at: '2024-02-20' },
@@ -72,7 +81,7 @@ export const topProductsMetrics = [
   { name: 'Luminária LED Inteligente', revenue: 1798, units: 20, profit: 680, margin: 37.8, roas: 3.2 },
 ];
 
-export const campaigns: Campaign[] = [
+export const campaigns: MockCampaign[] = [
   { id: '1', ad_account_id: '1', platform: 'Meta', name: 'Skincare - Interesse Beleza - W18', status: 'active', budget_daily: 200, spend: 1280, impressions: 142000, clicks: 3820, cpm: 9.01, ctr: 2.69, cpc: 0.34, cpa: 18.29, conversions: 70, revenue: 8940, profit: 4520, roas: 6.98, score: 'scale' },
   { id: '2', ad_account_id: '1', platform: 'Meta', name: 'Fone BT - Lookalike 1% - W18', status: 'active', budget_daily: 150, spend: 890, impressions: 98000, clicks: 2450, cpm: 9.08, ctr: 2.50, cpc: 0.36, cpa: 22.25, conversions: 40, revenue: 5200, profit: 2180, roas: 5.84, score: 'scale' },
   { id: '3', ad_account_id: '2', platform: 'Google', name: 'Search - Fone Bluetooth Comprar', status: 'active', budget_daily: 120, spend: 720, impressions: 34000, clicks: 1200, cpm: 21.18, ctr: 3.53, cpc: 0.60, cpa: 26.67, conversions: 27, revenue: 3480, profit: 1340, roas: 4.83, score: 'watch' },
@@ -81,7 +90,7 @@ export const campaigns: Campaign[] = [
   { id: '6', ad_account_id: '1', platform: 'Meta', name: 'Luminária - Broad - W18', status: 'active', budget_daily: 60, spend: 380, impressions: 45000, clicks: 980, cpm: 8.44, ctr: 2.18, cpc: 0.39, cpa: 76.00, conversions: 5, revenue: 450, profit: -120, roas: 1.18, score: 'cut' },
 ];
 
-export const recentOrders: Order[] = [
+export const recentOrders: MockOrder[] = [
   { id: '1', order_number: 'TF-28431', created_at: '2024-03-23T14:32:00', customer_name: 'Maria Silva', customer_phone: '11987654321', customer_email: 'maria@email.com', product_id: '1', product_name: 'Kit Skincare Premium', platform: 'Meta Ads', campaign_name: 'Skincare - Interesse Beleza - W18', utm_source: 'facebook', utm_campaign: 'skincare_w18', utm_content: 'video_ugc_03', utm_term: '', gross_value: 197.90, product_cost: 32.50, gateway_fee: 9.90, ads_cost_attributed: 18.29, shipping_cost: 12.00, tax: 9.90, net_profit: 115.31, payment_status: 'approved', payment_method: 'pix', state: 'SP', city: 'São Paulo' },
   { id: '2', order_number: 'TF-28432', created_at: '2024-03-23T14:28:00', customer_name: 'João Mendes', customer_phone: '21976543210', customer_email: 'joao@email.com', product_id: '2', product_name: 'Fone Bluetooth Pro Max', platform: 'Meta Ads', campaign_name: 'Fone BT - Lookalike 1% - W18', utm_source: 'facebook', utm_campaign: 'fone_lal1_w18', utm_content: 'carrossel_01', utm_term: '', gross_value: 149.90, product_cost: 28.00, gateway_fee: 7.50, ads_cost_attributed: 22.25, shipping_cost: 12.00, tax: 7.50, net_profit: 72.65, payment_status: 'approved', payment_method: 'credit_card', state: 'RJ', city: 'Rio de Janeiro' },
   { id: '3', order_number: 'TF-28433', created_at: '2024-03-23T14:15:00', customer_name: 'Ana Ferreira', customer_phone: '31965432109', customer_email: 'ana@email.com', product_id: '5', product_name: 'Relógio Smart Fitness', platform: 'Google Ads', campaign_name: 'Search - Relogio Smart', utm_source: 'google', utm_campaign: 'relogio_search', utm_content: '', utm_term: 'relogio smart fitness', gross_value: 247.90, product_cost: 42.00, gateway_fee: 12.40, ads_cost_attributed: 26.67, shipping_cost: 15.00, tax: 12.40, net_profit: 139.43, payment_status: 'approved', payment_method: 'pix', state: 'MG', city: 'Belo Horizonte' },
@@ -90,7 +99,7 @@ export const recentOrders: Order[] = [
   { id: '6', order_number: 'TF-28436', created_at: '2024-03-23T13:40:00', customer_name: 'Pedro Santos', customer_phone: '71932109876', customer_email: 'pedro@email.com', product_id: '3', product_name: 'Luminária LED Inteligente', platform: 'Meta Ads', campaign_name: 'Luminária - Broad - W18', utm_source: 'facebook', utm_campaign: 'luminaria_broad_w18', utm_content: 'video_produto_01', utm_term: '', gross_value: 89.90, product_cost: 18.90, gateway_fee: 4.50, ads_cost_attributed: 76.00, shipping_cost: 12.00, tax: 4.50, net_profit: -26.00, payment_status: 'approved', payment_method: 'pix', state: 'BA', city: 'Salvador' },
 ];
 
-export const pixPendingData: PixPending[] = [
+export const pixPendingData: MockPixPending[] = [
   { id: '1', order_id: 'TF-28437', customer_name: 'Rafael Lima', customer_phone: '11998877665', product_name: 'Kit Skincare Premium', value: 197.90, generated_at: '2024-03-23T14:30:00', minutes_open: 8, campaign_name: 'Skincare - Interesse Beleza - W18', utm_source: 'facebook', status: 'pending' },
   { id: '2', order_id: 'TF-28438', customer_name: 'Fernanda Costa', customer_phone: '21987766554', product_name: 'Fone Bluetooth Pro Max', value: 149.90, generated_at: '2024-03-23T14:22:00', minutes_open: 16, campaign_name: 'Fone BT - Lookalike 1% - W18', utm_source: 'facebook', status: 'pending' },
   { id: '3', order_id: 'TF-28439', customer_name: 'Bruno Almeida', customer_phone: '31976655443', product_name: 'Relógio Smart Fitness', value: 247.90, generated_at: '2024-03-23T14:10:00', minutes_open: 28, campaign_name: 'Search - Relogio Smart', utm_source: 'google', status: 'pending' },
@@ -101,7 +110,7 @@ export const pixPendingData: PixPending[] = [
   { id: '8', order_id: 'TF-28444', customer_name: 'Juliana Pereira', customer_phone: '61921100998', product_name: 'Relógio Smart Fitness', value: 247.90, generated_at: '2024-03-23T11:50:00', minutes_open: 168, campaign_name: 'Search - Relogio Smart', utm_source: 'google', status: 'pending' },
 ];
 
-export const notifications: Notification[] = [
+export const notifications: MockNotification[] = [
   { id: '1', type: 'sale', title: 'Nova venda aprovada', message: 'Kit Skincare Premium — R$ 197,90 | Lucro: R$ 115,31', read: false, created_at: '2024-03-23T14:32:00' },
   { id: '2', type: 'pix_paid', title: 'Pix confirmado', message: 'Relógio Smart Fitness — R$ 247,90 por Ana Ferreira', read: false, created_at: '2024-03-23T14:15:00' },
   { id: '3', type: 'goal_reached', title: 'Meta atingida!', message: 'Lucro do dia ultrapassou R$ 8.000. Atual: R$ 8.943,20', read: false, created_at: '2024-03-23T14:00:00' },
@@ -110,7 +119,7 @@ export const notifications: Notification[] = [
   { id: '6', type: 'negative_campaign', title: 'Campanha negativa', message: '"Luminária - Broad - W18" com prejuízo de R$ 120,00. Considere pausar.', read: true, created_at: '2024-03-23T11:00:00' },
 ];
 
-export const integrations: Integration[] = [
+export const integrations: MockIntegration[] = [
   { id: '1', name: 'Meta Ads', platform: 'meta', icon: 'Facebook', status: 'connected', description: 'Importa campanhas, conjuntos e anúncios do Facebook/Instagram Ads', last_sync: '2024-03-23T14:30:00' },
   { id: '2', name: 'Google Ads', platform: 'google', icon: 'Search', status: 'connected', description: 'Importa campanhas do Google Ads incluindo Search, Display e YouTube', last_sync: '2024-03-23T14:25:00' },
   { id: '3', name: 'TikTok Ads', platform: 'tiktok', icon: 'Music', status: 'connected', description: 'Importa campanhas e métricas do TikTok Ads Manager', last_sync: '2024-03-23T14:20:00' },
@@ -159,7 +168,7 @@ export const recoveryData = {
   ],
 };
 
-export const financialSummary: DailySnapshot = {
+export const financialSummary: MockDailySnapshot = {
   date: '2024-03-23',
   gross_revenue: 24832.90,
   net_revenue: 21407.30,

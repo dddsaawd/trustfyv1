@@ -1,157 +1,35 @@
-// TRUSTFY — Database Types (prepared for Supabase)
+// TRUSTFY — Database Types (derived from Supabase schema)
+import type { Database } from '@/integrations/supabase/types';
 
-export interface Product {
-  id: string;
-  name: string;
-  sku: string;
-  cost: number;
-  price: number;
-  image_url?: string;
-  active: boolean;
-  created_at: string;
-}
+// Row types from Supabase
+export type Product = Database['public']['Tables']['products']['Row'];
+export type Campaign = Database['public']['Tables']['campaigns']['Row'];
+export type Order = Database['public']['Tables']['orders']['Row'];
+export type PixPending = Database['public']['Tables']['pix_pending']['Row'];
+export type Notification = Database['public']['Tables']['notifications']['Row'];
+export type Integration = Database['public']['Tables']['integrations']['Row'];
+export type DailySnapshot = Database['public']['Tables']['daily_snapshots']['Row'];
+export type Expense = Database['public']['Tables']['expenses']['Row'];
+export type Recovery = Database['public']['Tables']['recoveries']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Platform = Database['public']['Tables']['platforms']['Row'];
+export type AdAccount = Database['public']['Tables']['ad_accounts']['Row'];
+export type UtmEvent = Database['public']['Tables']['utm_events']['Row'];
+export type UserDevice = Database['public']['Tables']['user_devices']['Row'];
 
-export interface Platform {
-  id: string;
-  name: 'meta' | 'google' | 'tiktok' | 'kwai' | 'organic';
-  label: string;
-  color: string;
-}
+// Enums
+export type PaymentStatus = Database['public']['Enums']['payment_status'];
+export type PaymentMethod = Database['public']['Enums']['payment_method'];
+export type CampaignScore = Database['public']['Enums']['campaign_score'];
+export type CampaignStatus = Database['public']['Enums']['campaign_status'];
+export type PixStatus = Database['public']['Enums']['pix_status'];
+export type RecoveryChannel = Database['public']['Enums']['recovery_channel'];
+export type ExpenseCategory = Database['public']['Enums']['expense_category'];
+export type IntegrationStatus = Database['public']['Enums']['integration_status'];
+export type NotificationType = Database['public']['Enums']['notification_type'];
+export type PlatformName = Database['public']['Enums']['platform_name'];
 
-export interface AdAccount {
-  id: string;
-  platform_id: string;
-  name: string;
-  account_id: string;
-  active: boolean;
-}
-
-export interface Campaign {
-  id: string;
-  ad_account_id: string;
-  platform: string;
-  name: string;
-  status: 'active' | 'paused' | 'ended';
-  budget_daily: number;
-  spend: number;
-  impressions: number;
-  clicks: number;
-  cpm: number;
-  ctr: number;
-  cpc: number;
-  cpa: number;
-  conversions: number;
-  revenue: number;
-  profit: number;
-  roas: number;
-  score: 'scale' | 'watch' | 'cut';
-}
-
-export interface Order {
-  id: string;
-  order_number: string;
-  created_at: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string;
-  product_id: string;
-  product_name: string;
-  platform: string;
-  campaign_name: string;
-  utm_source: string;
-  utm_campaign: string;
-  utm_content: string;
-  utm_term: string;
-  gross_value: number;
-  product_cost: number;
-  gateway_fee: number;
-  ads_cost_attributed: number;
-  shipping_cost: number;
-  tax: number;
-  net_profit: number;
-  payment_status: 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback';
-  payment_method: 'pix' | 'credit_card' | 'boleto' | 'debit';
-  state: string;
-  city: string;
-}
-
-export interface PixPending {
-  id: string;
-  order_id: string;
-  customer_name: string;
-  customer_phone: string;
-  product_name: string;
-  value: number;
-  generated_at: string;
-  minutes_open: number;
-  campaign_name: string;
-  utm_source: string;
-  status: 'pending' | 'paid' | 'expired' | 'abandoned';
-}
-
-export interface Recovery {
-  id: string;
-  pix_id: string;
-  channel: 'whatsapp' | 'push' | 'email' | 'sms';
-  sent_at: string;
-  converted: boolean;
-  converted_at?: string;
-  value: number;
-}
-
-export interface Expense {
-  id: string;
-  category: 'ads' | 'product' | 'shipping' | 'gateway' | 'tax' | 'tools' | 'team' | 'other';
-  description: string;
-  value: number;
-  date: string;
-  recurring: boolean;
-}
-
-export interface Notification {
-  id: string;
-  type: 'sale' | 'pix_generated' | 'pix_paid' | 'goal_reached' | 'roas_drop' | 'cpa_spike' | 'negative_campaign' | 'chargeback' | 'daily_summary';
-  title: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-  data?: Record<string, any>;
-}
-
-export interface Integration {
-  id: string;
-  name: string;
-  platform: string;
-  icon: string;
-  status: 'connected' | 'disconnected' | 'error';
-  description: string;
-  last_sync?: string;
-}
-
-export interface DailySnapshot {
-  date: string;
-  gross_revenue: number;
-  net_revenue: number;
-  ad_spend: number;
-  product_cost: number;
-  shipping_cost: number;
-  gateway_fees: number;
-  taxes: number;
-  other_expenses: number;
-  net_profit: number;
-  margin: number;
-  orders_approved: number;
-  orders_pending: number;
-  orders_refused: number;
-  avg_ticket: number;
-  roas: number;
-  roi: number;
-  approval_rate: number;
-  pix_generated: number;
-  pix_paid: number;
-  pix_conversion: number;
-}
-
+// UI-only types (not in DB)
 export interface KPIData {
   label: string;
   value: string;
