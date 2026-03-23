@@ -119,7 +119,7 @@ export const notifications: MockNotification[] = [
   { id: '6', type: 'negative_campaign', title: 'Campanha negativa', message: '"Luminária - Broad - W18" com prejuízo de R$ 120,00. Considere pausar.', read: true, created_at: '2024-03-23T11:00:00' },
 ];
 
-export const integrations: Integration[] = [
+export const integrations: MockIntegration[] = [
   { id: '1', name: 'Meta Ads', platform: 'meta', icon: 'Facebook', status: 'connected', description: 'Importa campanhas, conjuntos e anúncios do Facebook/Instagram Ads', last_sync: '2024-03-23T14:30:00' },
   { id: '2', name: 'Google Ads', platform: 'google', icon: 'Search', status: 'connected', description: 'Importa campanhas do Google Ads incluindo Search, Display e YouTube', last_sync: '2024-03-23T14:25:00' },
   { id: '3', name: 'TikTok Ads', platform: 'tiktok', icon: 'Music', status: 'connected', description: 'Importa campanhas e métricas do TikTok Ads Manager', last_sync: '2024-03-23T14:20:00' },
