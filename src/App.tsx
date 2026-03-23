@@ -3,6 +3,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Index from "./pages/Index";
 import Vendas from "./pages/Vendas";
 import Trafego from "./pages/Trafego";
@@ -20,30 +24,38 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const ProtectedPage = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>{children}</ProtectedRoute>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/vendas" element={<Vendas />} />
-          <Route path="/trafego" element={<Trafego />} />
-          <Route path="/produtos" element={<Produtos />} />
-          <Route path="/utms" element={<UTMs />} />
-          <Route path="/financeiro" element={<Financeiro />} />
-          <Route path="/pix-pendentes" element={<PixPendentes />} />
-          <Route path="/recuperacao" element={<Recuperacao />} />
-          <Route path="/notificacoes" element={<Notificacoes />} />
-          <Route path="/relatorios" element={<Relatorios />} />
-          <Route path="/integracoes" element={<Integracoes />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
-          <Route path="/modo-escala" element={<ModoEscala />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/" element={<ProtectedPage><Index /></ProtectedPage>} />
+            <Route path="/vendas" element={<ProtectedPage><Vendas /></ProtectedPage>} />
+            <Route path="/trafego" element={<ProtectedPage><Trafego /></ProtectedPage>} />
+            <Route path="/produtos" element={<ProtectedPage><Produtos /></ProtectedPage>} />
+            <Route path="/utms" element={<ProtectedPage><UTMs /></ProtectedPage>} />
+            <Route path="/financeiro" element={<ProtectedPage><Financeiro /></ProtectedPage>} />
+            <Route path="/pix-pendentes" element={<ProtectedPage><PixPendentes /></ProtectedPage>} />
+            <Route path="/recuperacao" element={<ProtectedPage><Recuperacao /></ProtectedPage>} />
+            <Route path="/notificacoes" element={<ProtectedPage><Notificacoes /></ProtectedPage>} />
+            <Route path="/relatorios" element={<ProtectedPage><Relatorios /></ProtectedPage>} />
+            <Route path="/integracoes" element={<ProtectedPage><Integracoes /></ProtectedPage>} />
+            <Route path="/configuracoes" element={<ProtectedPage><Configuracoes /></ProtectedPage>} />
+            <Route path="/modo-escala" element={<ProtectedPage><ModoEscala /></ProtectedPage>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
