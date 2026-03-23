@@ -110,7 +110,7 @@ export const pixPendingData: MockPixPending[] = [
   { id: '8', order_id: 'TF-28444', customer_name: 'Juliana Pereira', customer_phone: '61921100998', product_name: 'Relógio Smart Fitness', value: 247.90, generated_at: '2024-03-23T11:50:00', minutes_open: 168, campaign_name: 'Search - Relogio Smart', utm_source: 'google', status: 'pending' },
 ];
 
-export const notifications: Notification[] = [
+export const notifications: MockNotification[] = [
   { id: '1', type: 'sale', title: 'Nova venda aprovada', message: 'Kit Skincare Premium — R$ 197,90 | Lucro: R$ 115,31', read: false, created_at: '2024-03-23T14:32:00' },
   { id: '2', type: 'pix_paid', title: 'Pix confirmado', message: 'Relógio Smart Fitness — R$ 247,90 por Ana Ferreira', read: false, created_at: '2024-03-23T14:15:00' },
   { id: '3', type: 'goal_reached', title: 'Meta atingida!', message: 'Lucro do dia ultrapassou R$ 8.000. Atual: R$ 8.943,20', read: false, created_at: '2024-03-23T14:00:00' },
