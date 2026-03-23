@@ -168,7 +168,7 @@ export const recoveryData = {
   ],
 };
 
-export const financialSummary: DailySnapshot = {
+export const financialSummary: MockDailySnapshot = {
   date: '2024-03-23',
   gross_revenue: 24832.90,
   net_revenue: 21407.30,
