@@ -65,7 +65,7 @@ export const platformSalesData = [
   { name: 'Orgânico', sales: 5, revenue: 1023, color: 'hsl(152, 69%, 45%)' },
 ];
 
-export const topProducts: Product[] = [
+export const topProducts: MockProduct[] = [
   { id: '1', name: 'Kit Skincare Premium', sku: 'SKC-001', cost: 32.50, price: 197.90, active: true, created_at: '2024-01-15' },
   { id: '2', name: 'Fone Bluetooth Pro Max', sku: 'FBT-002', cost: 28.00, price: 149.90, active: true, created_at: '2024-02-01' },
   { id: '3', name: 'Luminária LED Inteligente', sku: 'LUM-003', cost: 18.90, price: 89.90, active: true, created_at: '2024-02-20' },
