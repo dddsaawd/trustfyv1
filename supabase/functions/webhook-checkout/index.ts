@@ -136,12 +136,12 @@ Deno.serve(async (req) => {
             .update({
               payment_status: order.payment_status || 'pending',
               payment_method: order.payment_method || 'pix',
-              gross_value: order.gross_value,
-              product_cost: order.product_cost || 0,
-              gateway_fee: order.gateway_fee || 0,
-              ads_cost_attributed: order.ads_cost_attributed || 0,
-              shipping_cost: order.shipping_cost || 0,
-              tax: order.tax || 0,
+              gross_value: grossValue,
+              product_cost: productCost,
+              gateway_fee: gatewayFee,
+              ads_cost_attributed: adsCost,
+              shipping_cost: shippingCost,
+              tax: tax,
               net_profit: netProfit,
             })
             .eq('order_number', order.order_number)
