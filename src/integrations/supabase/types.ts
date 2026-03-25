@@ -135,6 +135,60 @@ export type Database = {
           },
         ]
       }
+      cost_settings: {
+        Row: {
+          antecipation_fee_percent: number
+          avg_shipping: number
+          boleto_fee: number
+          chargeback_rate: number
+          created_at: string
+          gateway_fee_fixed: number
+          gateway_fee_percent: number
+          id: string
+          marketplace_fee_percent: number
+          monthly_fixed_expenses: number
+          pix_discount_percent: number
+          refund_rate: number
+          tax_percent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          antecipation_fee_percent?: number
+          avg_shipping?: number
+          boleto_fee?: number
+          chargeback_rate?: number
+          created_at?: string
+          gateway_fee_fixed?: number
+          gateway_fee_percent?: number
+          id?: string
+          marketplace_fee_percent?: number
+          monthly_fixed_expenses?: number
+          pix_discount_percent?: number
+          refund_rate?: number
+          tax_percent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          antecipation_fee_percent?: number
+          avg_shipping?: number
+          boleto_fee?: number
+          chargeback_rate?: number
+          created_at?: string
+          gateway_fee_fixed?: number
+          gateway_fee_percent?: number
+          id?: string
+          marketplace_fee_percent?: number
+          monthly_fixed_expenses?: number
+          pix_discount_percent?: number
+          refund_rate?: number
+          tax_percent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_snapshots: {
         Row: {
           ad_spend: number | null
