@@ -97,6 +97,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch user's cost_settings for automatic cost calculation
+    const { data: costSettings } = await supabase
+      .from('cost_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
     const payload: WebhookPayload = await req.json()
     const { event, data } = payload
 
@@ -107,12 +114,20 @@ Deno.serve(async (req) => {
       case 'order.paid':
       case 'order.updated': {
         const order = data as WebhookOrder
-        const netProfit = (order.gross_value || 0)
-          - (order.product_cost || 0)
-          - (order.gateway_fee || 0)
-          - (order.ads_cost_attributed || 0)
-          - (order.shipping_cost || 0)
-          - (order.tax || 0)
+        const grossValue = order.gross_value || 0
+
+        // Use webhook values if provided, otherwise calculate from cost_settings
+        const productCost = order.product_cost ?? 0
+        const gatewayFee = order.gateway_fee ?? (costSettings
+          ? (grossValue * costSettings.gateway_fee_percent / 100) + costSettings.gateway_fee_fixed
+          : 0)
+        const shippingCost = order.shipping_cost ?? (costSettings?.avg_shipping ?? 0)
+        const tax = order.tax ?? (costSettings
+          ? grossValue * costSettings.tax_percent / 100
+          : 0)
+        const adsCost = order.ads_cost_attributed ?? 0
+
+        const netProfit = grossValue - productCost - gatewayFee - adsCost - shippingCost - tax
 
         if (event === 'order.updated') {
           // Try to update existing order
@@ -121,12 +136,12 @@ Deno.serve(async (req) => {
             .update({
               payment_status: order.payment_status || 'pending',
               payment_method: order.payment_method || 'pix',
-              gross_value: order.gross_value,
-              product_cost: order.product_cost || 0,
-              gateway_fee: order.gateway_fee || 0,
-              ads_cost_attributed: order.ads_cost_attributed || 0,
-              shipping_cost: order.shipping_cost || 0,
-              tax: order.tax || 0,
+              gross_value: grossValue,
+              product_cost: productCost,
+              gateway_fee: gatewayFee,
+              ads_cost_attributed: adsCost,
+              shipping_cost: shippingCost,
+              tax: tax,
               net_profit: netProfit,
             })
             .eq('order_number', order.order_number)
@@ -169,12 +184,12 @@ Deno.serve(async (req) => {
             customer_email: order.customer_email || null,
             customer_phone: order.customer_phone || null,
             product_name: order.product_name,
-            gross_value: order.gross_value,
-            product_cost: order.product_cost || 0,
-            gateway_fee: order.gateway_fee || 0,
-            ads_cost_attributed: order.ads_cost_attributed || 0,
-            shipping_cost: order.shipping_cost || 0,
-            tax: order.tax || 0,
+            gross_value: grossValue,
+            product_cost: productCost,
+            gateway_fee: gatewayFee,
+            ads_cost_attributed: adsCost,
+            shipping_cost: shippingCost,
+            tax: tax,
             net_profit: netProfit,
             payment_status: order.payment_status || (event === 'order.paid' ? 'approved' : 'pending'),
             payment_method: order.payment_method || 'pix',
