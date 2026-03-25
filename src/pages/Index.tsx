@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { KPICard } from '@/components/dashboard/KPICard';
-import { kpiData, warModeKPIs, hourlyData, paymentMethodData, platformSalesData, topProductsMetrics, campaigns, recentOrders, pixPendingData, dailyProjection } from '@/data/mock';
+import { kpiData as mockKpiData, warModeKPIs as mockWarKPIs, hourlyData, paymentMethodData, platformSalesData, topProductsMetrics, campaigns, recentOrders as mockRecentOrders, dailyProjection } from '@/data/mock';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { Swords, TrendingUp, TrendingDown, Zap, Target } from 'lucide-react';
+import { Swords, TrendingUp, TrendingDown, Zap, Target, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
   const [warMode, setWarMode] = useState(false);
+  const { kpis, warModeKPIs: liveWarKPIs, recentOrders: liveOrders, isLoading, hasRealData } = useDashboardData();
+
+  const activeKPIs = hasRealData ? kpis : mockKpiData;
+  const activeWarKPIs = hasRealData ? liveWarKPIs : mockWarKPIs;
+  const activeOrders = hasRealData ? liveOrders : mockRecentOrders;
 
   if (warMode) {
     return (
@@ -28,7 +34,7 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl">
-            {warModeKPIs.map((kpi, i) => (
+            {activeWarKPIs.map((kpi, i) => (
               <div key={i} className="rounded-2xl border border-border bg-card p-8 text-center animate-scale-in" style={{ animationDelay: `${i * 100}ms` }}>
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">{kpi.label}</p>
                 <p className="text-5xl lg:text-6xl font-black text-foreground tabular-nums tracking-tight">{kpi.value}</p>
@@ -48,6 +54,14 @@ const Index = () => {
 
   return (
     <DashboardLayout title="Resumo">
+      {/* Data Source Indicator */}
+      {hasRealData && (
+        <div className="mb-3 flex items-center gap-2 text-xs text-success animate-fade-in">
+          <Database className="h-3 w-3" />
+          <span className="font-medium">Dados em tempo real — atualizado a cada 30s</span>
+        </div>
+      )}
+
       {/* Projection Banner */}
       <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 animate-fade-in">
         <div className="flex items-center gap-2">
@@ -67,7 +81,7 @@ const Index = () => {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
-        {kpiData.map((kpi, i) => (
+        {activeKPIs.map((kpi, i) => (
           <KPICard key={i} {...kpi} index={i} />
         ))}
       </div>
@@ -254,14 +268,14 @@ const Index = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentOrders.map((o, i) => (
+                {activeOrders.map((o, i) => (
                   <TableRow key={i} className="border-border">
                     <TableCell className="text-xs font-mono text-muted-foreground">{o.order_number}</TableCell>
                     <TableCell className="text-xs">{o.customer_name}</TableCell>
                     <TableCell className="text-xs max-w-[150px] truncate">{o.product_name}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">R$ {o.gross_value.toFixed(2)}</TableCell>
-                    <TableCell className={cn('text-xs text-right tabular-nums', o.net_profit >= 0 ? 'text-success' : 'text-destructive')}>
-                      R$ {o.net_profit.toFixed(2)}
+                    <TableCell className="text-xs text-right tabular-nums">R$ {Number(o.gross_value).toFixed(2)}</TableCell>
+                    <TableCell className={cn('text-xs text-right tabular-nums', Number(o.net_profit) >= 0 ? 'text-success' : 'text-destructive')}>
+                      R$ {Number(o.net_profit).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={o.payment_status === 'approved' ? 'default' : o.payment_status === 'pending' ? 'secondary' : 'destructive'}
