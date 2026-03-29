@@ -5,6 +5,7 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { financialSummary as mockFinancial, dailyProjection as mockProjection } from '@/data/mock';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { Target, Database, HardDrive } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
