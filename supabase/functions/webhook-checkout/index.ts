@@ -323,6 +323,29 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .eq('platform', 'webhook')
 
+    // Send push notification for sales events
+    if (['order.created', 'order.paid'].includes(event) && result) {
+      const order = data as WebhookOrder
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            title: '💰 Nova Venda!',
+            body: `${order.customer_name} — R$ ${order.gross_value?.toFixed(2)} — ${order.product_name}`,
+            data: { type: 'sale', order_id: result.id },
+          }),
+        })
+      } catch (e) {
+        console.error('Push notification trigger failed:', e)
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, event, data: result }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
