@@ -1,18 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getFirebaseMessaging, getToken, onMessage, VAPID_KEY } from '@/lib/firebase';
 import { toast } from 'sonner';
-
-// Firebase config placeholder — user will need to add their own keys
-const FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
-};
-
-const VAPID_KEY = ''; // User's VAPID key from Firebase console
 
 export function usePushNotifications(userId?: string) {
   const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -27,7 +16,44 @@ export function usePushNotifications(userId?: string) {
     }
   }, []);
 
-  const requestPermission = async () => {
+  // Listen for foreground messages
+  useEffect(() => {
+    const messaging = getFirebaseMessaging();
+    if (!messaging) return;
+
+    const unsubscribe = onMessage(messaging, (payload) => {
+      const title = payload.notification?.title || 'TRUSTFY';
+      const body = payload.notification?.body || '';
+      toast.success(`${title}: ${body}`);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const registerToken = useCallback(async (fcmToken: string) => {
+    if (!userId) return;
+    const platform = /iPhone|iPad|iPod/.test(navigator.userAgent)
+      ? 'ios'
+      : /Android/.test(navigator.userAgent)
+        ? 'android'
+        : 'web';
+
+    const { error } = await supabase.from('user_devices').upsert(
+      {
+        user_id: userId,
+        device_token: fcmToken,
+        platform: platform as 'ios' | 'android' | 'web',
+        active: true,
+      },
+      { onConflict: 'user_id,device_token' }
+    );
+
+    if (error) {
+      console.error('Error registering device token:', error);
+    }
+  }, [userId]);
+
+  const requestPermission = useCallback(async () => {
     if (!supported) {
       toast.error('Push notifications não são suportadas neste navegador.');
       return null;
@@ -37,33 +63,32 @@ export function usePushNotifications(userId?: string) {
       const result = await Notification.requestPermission();
       setPermission(result);
 
-      if (result === 'granted') {
-        // In production, initialize Firebase and get FCM token here:
-        // const app = initializeApp(FIREBASE_CONFIG);
-        // const messaging = getMessaging(app);
-        // const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+      if (result !== 'granted') {
+        toast.error('Permissão de notificação negada.');
+        return null;
+      }
 
-        // For now, register with a placeholder
-        const fcmToken = 'fcm_placeholder_' + Date.now();
+      // Register service worker
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+      const messaging = getFirebaseMessaging();
+      if (!messaging) {
+        toast.error('Firebase Messaging não disponível.');
+        return null;
+      }
+
+      const fcmToken = await getToken(messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+
+      if (fcmToken) {
         setToken(fcmToken);
-
-        // Register device in Supabase
-        if (userId) {
-          const platform = /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios'
-            : /Android/.test(navigator.userAgent) ? 'android' : 'web';
-
-          await supabase.from('user_devices').upsert({
-            user_id: userId,
-            device_token: fcmToken,
-            platform: platform as 'ios' | 'android' | 'web',
-            active: true,
-          }, { onConflict: 'user_id,device_token' });
-        }
-
-        toast.success('Notificações ativadas!');
+        await registerToken(fcmToken);
+        toast.success('Notificações push ativadas! 🔔');
         return fcmToken;
       } else {
-        toast.error('Permissão de notificação negada.');
+        toast.error('Não foi possível obter token de notificação.');
         return null;
       }
     } catch (error) {
@@ -71,7 +96,14 @@ export function usePushNotifications(userId?: string) {
       toast.error('Erro ao ativar notificações.');
       return null;
     }
-  };
+  }, [supported, registerToken]);
+
+  // Auto-request if already granted (e.g. returning user)
+  useEffect(() => {
+    if (supported && userId && permission === 'granted' && !token) {
+      requestPermission();
+    }
+  }, [supported, userId, permission, token, requestPermission]);
 
   return { permission, token, supported, requestPermission };
 }
