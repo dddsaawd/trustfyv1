@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { KPICard } from '@/components/dashboard/KPICard';
-import { kpiData as mockKpiData, warModeKPIs as mockWarKPIs, hourlyData, paymentMethodData, platformSalesData, topProductsMetrics, campaigns, recentOrders as mockRecentOrders, dailyProjection } from '@/data/mock';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,16 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { Swords, TrendingUp, TrendingDown, Zap, Target, Database } from 'lucide-react';
+import { Swords, TrendingUp, TrendingDown, Zap, Target, Database, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
   const [warMode, setWarMode] = useState(false);
   const { kpis, warModeKPIs: liveWarKPIs, recentOrders: liveOrders, isLoading, hasRealData } = useDashboardData();
 
-  const activeKPIs = hasRealData ? kpis : mockKpiData;
-  const activeWarKPIs = hasRealData ? liveWarKPIs : mockWarKPIs;
-  const activeOrders = hasRealData ? liveOrders : mockRecentOrders;
+  const activeKPIs = kpis;
+  const activeWarKPIs = liveWarKPIs;
+  const activeOrders = liveOrders;
 
   if (warMode) {
     return (
