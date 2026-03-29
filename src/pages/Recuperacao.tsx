@@ -1,21 +1,73 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { recoveryData } from '@/data/mock';
+import { recoveryData as mockRecovery } from '@/data/mock';
 import { cn } from '@/lib/utils';
-import { RotateCcw, DollarSign, Clock, TrendingUp } from 'lucide-react';
-
-const kpis = [
-  { label: 'Recuperações Enviadas', value: recoveryData.sent.toString(), icon: RotateCcw },
-  { label: 'Vendas Recuperadas', value: recoveryData.recovered.toString(), icon: TrendingUp },
-  { label: 'Valor Recuperado', value: `R$ ${recoveryData.value_recovered.toLocaleString()}`, icon: DollarSign },
-  { label: 'Taxa de Recuperação', value: `${recoveryData.rate}%`, icon: TrendingUp },
-  { label: 'Melhor Janela', value: recoveryData.best_window, icon: Clock },
-];
+import { RotateCcw, DollarSign, Clock, TrendingUp, Database, HardDrive } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
 
 const Recuperacao = () => {
+  const { user } = useAuth();
+
+  const { data: recoveries } = useQuery({
+    queryKey: ['recoveries', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('recoveries').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
+  const hasRealData = recoveries && recoveries.length > 0;
+
+  const stats = useMemo(() => {
+    if (!hasRealData) return {
+      sent: mockRecovery.sent, recovered: mockRecovery.recovered,
+      value_recovered: mockRecovery.value_recovered, rate: mockRecovery.rate,
+      best_window: mockRecovery.best_window, channels: mockRecovery.channels,
+    };
+
+    const sent = recoveries.length;
+    const converted = recoveries.filter((r: any) => r.converted).length;
+    const valueRecovered = recoveries.filter((r: any) => r.converted).reduce((s: number, r: any) => s + Number(r.value || 0), 0);
+    const rate = sent > 0 ? Math.round((converted / sent) * 100) : 0;
+
+    const channelMap: Record<string, { name: string; sent: number; converted: number; value: number }> = {};
+    recoveries.forEach((r: any) => {
+      const ch = r.channel;
+      if (!channelMap[ch]) channelMap[ch] = { name: ch === 'whatsapp' ? 'WhatsApp' : ch === 'push' ? 'Push' : ch === 'email' ? 'E-mail' : 'SMS', sent: 0, converted: 0, value: 0 };
+      channelMap[ch].sent++;
+      if (r.converted) { channelMap[ch].converted++; channelMap[ch].value += Number(r.value || 0); }
+    });
+    const channels = Object.values(channelMap).map(c => ({ ...c, rate: c.sent > 0 ? Math.round((c.converted / c.sent) * 100) : 0 }));
+
+    return { sent, recovered: converted, value_recovered: valueRecovered, rate, best_window: '5-15 min', channels };
+  }, [hasRealData, recoveries]);
+
+  const kpis = [
+    { label: 'Recuperações Enviadas', value: stats.sent.toString(), icon: RotateCcw },
+    { label: 'Vendas Recuperadas', value: stats.recovered.toString(), icon: TrendingUp },
+    { label: 'Valor Recuperado', value: `R$ ${stats.value_recovered.toLocaleString()}`, icon: DollarSign },
+    { label: 'Taxa de Recuperação', value: `${stats.rate}%`, icon: TrendingUp },
+    { label: 'Melhor Janela', value: stats.best_window, icon: Clock },
+  ];
+
   return (
     <DashboardLayout title="Recuperação">
+      <div className="flex items-center gap-1.5 mb-3">
+        {hasRealData ? (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         {kpis.map((kpi, i) => (
           <Card key={i} className="border-border animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
@@ -44,7 +96,7 @@ const Recuperacao = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recoveryData.channels.map((ch, i) => (
+              {stats.channels.map((ch: any, i: number) => (
                 <TableRow key={i} className="border-border">
                   <TableCell className="text-xs font-medium">{ch.name}</TableCell>
                   <TableCell className="text-xs text-right tabular-nums">{ch.sent}</TableCell>

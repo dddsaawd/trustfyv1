@@ -2,25 +2,56 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { pixPendingData } from '@/data/mock';
+import { pixPendingData as mockPix } from '@/data/mock';
 import { cn } from '@/lib/utils';
-import { Clock, AlertTriangle, DollarSign, TrendingDown } from 'lucide-react';
-
-const totalPending = pixPendingData.reduce((a, b) => a + b.value, 0);
-const avgMinutes = Math.round(pixPendingData.reduce((a, b) => a + b.minutes_open, 0) / pixPendingData.length);
-const urgentCount = pixPendingData.filter(p => p.minutes_open > 60).length;
-
-const kpis = [
-  { label: 'Pix Pendentes', value: pixPendingData.length.toString(), icon: Clock, color: 'text-warning' },
-  { label: 'Valor Total Pendente', value: `R$ ${totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-warning' },
-  { label: 'Tempo Médio Aberto', value: `${avgMinutes} min`, icon: Clock, color: 'text-muted-foreground' },
-  { label: 'Urgentes (>60 min)', value: urgentCount.toString(), icon: AlertTriangle, color: 'text-destructive' },
-];
+import { Clock, AlertTriangle, DollarSign, TrendingDown, Database, HardDrive } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
 
 const PixPendentes = () => {
+  const { user } = useAuth();
+
+  const { data: pixList } = useQuery({
+    queryKey: ['pix_pending', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('pix_pending').select('*').eq('status', 'pending').order('generated_at', { ascending: false });
+      if (error) throw error;
+      // Calculate minutes_open dynamically
+      return data.map((p: any) => ({
+        ...p,
+        minutes_open: p.minutes_open || Math.round((Date.now() - new Date(p.generated_at).getTime()) / 60000),
+      }));
+    },
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
+
+  const hasRealData = pixList && pixList.length > 0;
+  const displayPix = hasRealData ? pixList : mockPix;
+
+  const totalPending = displayPix.reduce((a: number, b: any) => a + Number(b.value || 0), 0);
+  const avgMinutes = displayPix.length > 0 ? Math.round(displayPix.reduce((a: number, b: any) => a + (b.minutes_open || 0), 0) / displayPix.length) : 0;
+  const urgentCount = displayPix.filter((p: any) => (p.minutes_open || 0) > 60).length;
+
+  const kpis = [
+    { label: 'Pix Pendentes', value: displayPix.length.toString(), icon: Clock, color: 'text-warning' },
+    { label: 'Valor Total Pendente', value: `R$ ${totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-warning' },
+    { label: 'Tempo Médio Aberto', value: `${avgMinutes} min`, icon: Clock, color: 'text-muted-foreground' },
+    { label: 'Urgentes (>60 min)', value: urgentCount.toString(), icon: AlertTriangle, color: 'text-destructive' },
+  ];
+
   return (
     <DashboardLayout title="Pix Pendentes">
-      {/* KPIs */}
+      <div className="flex items-center gap-1.5 mb-3">
+        {hasRealData ? (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {kpis.map((kpi, i) => (
           <Card key={i} className="border-border animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
@@ -37,7 +68,6 @@ const PixPendentes = () => {
         ))}
       </div>
 
-      {/* Alert Banner */}
       {urgentCount > 0 && (
         <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 p-3 flex items-center gap-2 animate-fade-in" style={{ animationDelay: '250ms' }}>
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
@@ -45,7 +75,6 @@ const PixPendentes = () => {
         </div>
       )}
 
-      {/* Table */}
       <Card className="border-border animate-fade-in" style={{ animationDelay: '300ms' }}>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Pix Pendentes Detalhado</CardTitle></CardHeader>
         <CardContent className="p-0">
@@ -63,23 +92,26 @@ const PixPendentes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pixPendingData.map((pix, i) => (
-                  <TableRow key={i} className={cn('border-border', pix.minutes_open > 60 && 'bg-destructive/5')}>
+                {displayPix.map((pix: any, i: number) => (
+                  <TableRow key={pix.id || i} className={cn('border-border', (pix.minutes_open || 0) > 60 && 'bg-destructive/5')}>
                     <TableCell className="text-xs font-medium">{pix.customer_name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">{pix.customer_phone}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{pix.customer_phone || '-'}</TableCell>
                     <TableCell className="text-xs max-w-[140px] truncate">{pix.product_name}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums font-medium">R$ {pix.value.toFixed(2)}</TableCell>
-                    <TableCell className="text-xs max-w-[160px] truncate text-muted-foreground">{pix.campaign_name}</TableCell>
-                    <TableCell className={cn('text-xs text-right tabular-nums', pix.minutes_open > 60 ? 'text-destructive font-medium' : pix.minutes_open > 30 ? 'text-warning' : 'text-muted-foreground')}>
-                      {pix.minutes_open} min
+                    <TableCell className="text-xs text-right tabular-nums font-medium">R$ {Number(pix.value || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs max-w-[160px] truncate text-muted-foreground">{pix.campaign_name || '-'}</TableCell>
+                    <TableCell className={cn('text-xs text-right tabular-nums', (pix.minutes_open || 0) > 60 ? 'text-destructive font-medium' : (pix.minutes_open || 0) > 30 ? 'text-warning' : 'text-muted-foreground')}>
+                      {pix.minutes_open || 0} min
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary" className={cn('text-[9px] px-1.5', pix.minutes_open > 60 ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-warning/20 text-warning border-warning/30')}>
-                        {pix.minutes_open > 60 ? 'Urgente' : 'Aguardando'}
+                      <Badge variant="secondary" className={cn('text-[9px] px-1.5', (pix.minutes_open || 0) > 60 ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-warning/20 text-warning border-warning/30')}>
+                        {(pix.minutes_open || 0) > 60 ? 'Urgente' : 'Aguardando'}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
+                {displayPix.length === 0 && (
+                  <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">Nenhum pix pendente</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

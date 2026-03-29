@@ -1,35 +1,102 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { KPICard } from '@/components/dashboard/KPICard';
-import { financialSummary, dailyProjection } from '@/data/mock';
+import { financialSummary as mockFinancial, dailyProjection as mockProjection } from '@/data/mock';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { Target } from 'lucide-react';
-
-const finKPIs = [
-  { label: 'Receita Bruta', value: `R$ ${financialSummary.gross_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 12.4, changeLabel: 'vs ontem', tooltip: 'Soma de todas as vendas brutas' },
-  { label: 'Receita Líquida', value: `R$ ${financialSummary.net_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 8.7, changeLabel: 'vs ontem', tooltip: 'Vendas aprovadas - reembolsos - chargebacks' },
-  { label: 'Gastos Ads', value: `R$ ${financialSummary.ad_spend.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: -3.2, changeLabel: 'vs ontem', tooltip: 'Total investido em plataformas de ads' },
-  { label: 'Custo Produtos', value: `R$ ${financialSummary.product_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 5.1, changeLabel: 'vs ontem', tooltip: 'Custo total dos produtos vendidos' },
-  { label: 'Frete', value: `R$ ${financialSummary.shipping_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 8.0, changeLabel: 'vs ontem', tooltip: 'Custo total de frete' },
-  { label: 'Taxas Gateway', value: `R$ ${financialSummary.gateway_fees.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 6.3, changeLabel: 'vs ontem', tooltip: 'Taxas cobradas pelo gateway de pagamento' },
-  { label: 'Impostos', value: `R$ ${financialSummary.taxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 7.2, changeLabel: 'vs ontem', tooltip: 'Impostos sobre vendas' },
-  { label: 'Outras Despesas', value: `R$ ${financialSummary.other_expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 0, changeLabel: 'vs ontem', tooltip: 'Ferramentas, equipe e despesas adicionais' },
-  { label: 'Lucro Líquido', value: `R$ ${financialSummary.net_profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 18.6, changeLabel: 'vs ontem', tooltip: 'Receita líquida - ads - produto - frete - taxas - impostos - outras despesas' },
-  { label: 'Margem Líquida', value: `${financialSummary.margin}%`, change: 4.2, changeLabel: 'vs ontem', tooltip: 'Lucro líquido ÷ receita líquida × 100' },
-];
-
-const costBreakdown = [
-  { name: 'Ads', value: financialSummary.ad_spend },
-  { name: 'Produtos', value: financialSummary.product_cost },
-  { name: 'Frete', value: financialSummary.shipping_cost },
-  { name: 'Gateway', value: financialSummary.gateway_fees },
-  { name: 'Impostos', value: financialSummary.taxes },
-  { name: 'Outros', value: financialSummary.other_expenses },
-];
+import { Target, Database, HardDrive } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
 
 const Financeiro = () => {
+  const { user } = useAuth();
+
+  const { data: orders } = useQuery({
+    queryKey: ['orders-financial', user?.id],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase.from('orders').select('*').gte('created_at', `${today}T00:00:00`);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
+  const { data: costSettings } = useQuery({
+    queryKey: ['cost_settings', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('cost_settings').select('*').single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const hasRealData = orders && orders.length > 0;
+
+  const financial = useMemo(() => {
+    if (!hasRealData) return mockFinancial;
+    const approved = orders.filter((o: any) => o.payment_status === 'approved');
+    const gross = orders.reduce((s: number, o: any) => s + Number(o.gross_value || 0), 0);
+    const netRevenue = approved.reduce((s: number, o: any) => s + Number(o.gross_value || 0), 0);
+    const adSpend = orders.reduce((s: number, o: any) => s + Number(o.ads_cost_attributed || 0), 0);
+    const productCost = orders.reduce((s: number, o: any) => s + Number(o.product_cost || 0), 0);
+    const shippingCost = orders.reduce((s: number, o: any) => s + Number(o.shipping_cost || 0), 0);
+    const gatewayFees = orders.reduce((s: number, o: any) => s + Number(o.gateway_fee || 0), 0);
+    const taxes = orders.reduce((s: number, o: any) => s + Number(o.tax || 0), 0);
+    const fixedDaily = costSettings ? Number(costSettings.monthly_fixed_expenses) / 30 : 0;
+    const netProfit = netRevenue - adSpend - productCost - shippingCost - gatewayFees - taxes - fixedDaily;
+    const margin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+    return {
+      gross_revenue: gross, net_revenue: netRevenue, ad_spend: adSpend,
+      product_cost: productCost, shipping_cost: shippingCost, gateway_fees: gatewayFees,
+      taxes, other_expenses: fixedDaily, net_profit: netProfit, margin: Math.round(margin * 10) / 10,
+    };
+  }, [hasRealData, orders, costSettings]);
+
+  const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+  const finKPIs = [
+    { label: 'Receita Bruta', value: fmt(financial.gross_revenue), change: 0, changeLabel: 'hoje', tooltip: 'Soma de todas as vendas brutas' },
+    { label: 'Receita Líquida', value: fmt(financial.net_revenue), change: 0, changeLabel: 'hoje', tooltip: 'Vendas aprovadas' },
+    { label: 'Gastos Ads', value: fmt(financial.ad_spend), change: 0, changeLabel: 'hoje', tooltip: 'Total investido em ads' },
+    { label: 'Custo Produtos', value: fmt(financial.product_cost), change: 0, changeLabel: 'hoje', tooltip: 'Custo total dos produtos' },
+    { label: 'Frete', value: fmt(financial.shipping_cost), change: 0, changeLabel: 'hoje', tooltip: 'Custo total de frete' },
+    { label: 'Taxas Gateway', value: fmt(financial.gateway_fees), change: 0, changeLabel: 'hoje', tooltip: 'Taxas do gateway' },
+    { label: 'Impostos', value: fmt(financial.taxes), change: 0, changeLabel: 'hoje', tooltip: 'Impostos sobre vendas' },
+    { label: 'Despesas Fixas', value: fmt(financial.other_expenses), change: 0, changeLabel: 'hoje', tooltip: 'Despesas fixas mensais ÷ 30' },
+    { label: 'Lucro Líquido', value: fmt(financial.net_profit), change: 0, changeLabel: 'hoje', tooltip: 'Receita líquida menos todos os custos' },
+    { label: 'Margem Líquida', value: `${financial.margin}%`, change: 0, changeLabel: 'hoje', tooltip: 'Lucro ÷ receita × 100' },
+  ];
+
+  const costBreakdown = [
+    { name: 'Ads', value: financial.ad_spend },
+    { name: 'Produtos', value: financial.product_cost },
+    { name: 'Frete', value: financial.shipping_cost },
+    { name: 'Gateway', value: financial.gateway_fees },
+    { name: 'Impostos', value: financial.taxes },
+    { name: 'Fixas', value: financial.other_expenses },
+  ];
+
+  // Projection based on current hour
+  const now = new Date();
+  const hoursElapsed = now.getHours() + now.getMinutes() / 60;
+  const projectedRevenue = hoursElapsed > 0 ? (financial.gross_revenue / hoursElapsed) * 24 : 0;
+  const projectedProfit = hoursElapsed > 0 ? (financial.net_profit / hoursElapsed) * 24 : 0;
+
   return (
     <DashboardLayout title="Financeiro">
+      <div className="flex items-center gap-1.5 mb-3">
+        {hasRealData ? (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais ({orders.length} pedidos hoje)</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
+        )}
+      </div>
+
       {/* Projection */}
       <div className="mb-6 rounded-xl border border-success/20 bg-success/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 animate-fade-in">
         <div className="flex items-center gap-2">
@@ -37,16 +104,14 @@ const Financeiro = () => {
           <span className="text-xs font-semibold uppercase tracking-wider text-success">Projeção do dia</span>
         </div>
         <div className="flex flex-wrap gap-4 text-sm">
-          <span className="text-muted-foreground">Faturamento: <strong className="text-foreground">{dailyProjection.projectedRevenue}</strong></span>
-          <span className="text-muted-foreground">Lucro: <strong className="text-success">{dailyProjection.projectedProfit}</strong></span>
+          <span className="text-muted-foreground">Faturamento: <strong className="text-foreground">{fmt(projectedRevenue)}</strong></span>
+          <span className="text-muted-foreground">Lucro: <strong className="text-success">{fmt(projectedProfit)}</strong></span>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
-        {finKPIs.map((kpi, i) => (
-          <KPICard key={i} {...kpi} index={i} />
-        ))}
+        {finKPIs.map((kpi, i) => <KPICard key={i} {...kpi} index={i} />)}
       </div>
 
       {/* Cost Breakdown */}
@@ -65,21 +130,21 @@ const Financeiro = () => {
         </CardContent>
       </Card>
 
-      {/* P&L Summary */}
+      {/* DRE */}
       <Card className="border-border animate-fade-in" style={{ animationDelay: '500ms' }}>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">DRE Simplificada do Dia</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm max-w-md">
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">Receita Bruta</span><span className="tabular-nums font-medium">R$ {financialSummary.gross_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Devoluções/Chargebacks</span><span className="tabular-nums text-destructive">-R$ {(financialSummary.gross_revenue - financialSummary.net_revenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border font-medium"><span>= Receita Líquida</span><span className="tabular-nums">R$ {financialSummary.net_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Anúncios</span><span className="tabular-nums text-destructive">-R$ {financialSummary.ad_spend.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Custo Produtos</span><span className="tabular-nums text-destructive">-R$ {financialSummary.product_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Frete</span><span className="tabular-nums text-destructive">-R$ {financialSummary.shipping_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Taxas Gateway</span><span className="tabular-nums text-destructive">-R$ {financialSummary.gateway_fees.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Impostos</span><span className="tabular-nums text-destructive">-R$ {financialSummary.taxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Outras Despesas</span><span className="tabular-nums text-destructive">-R$ {financialSummary.other_expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-            <div className="flex justify-between py-2 text-base font-bold text-success"><span>= Lucro Líquido</span><span className="tabular-nums">R$ {financialSummary.net_profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">Receita Bruta</span><span className="tabular-nums font-medium">{fmt(financial.gross_revenue)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Devoluções/Chargebacks</span><span className="tabular-nums text-destructive">-{fmt(financial.gross_revenue - financial.net_revenue)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border font-medium"><span>= Receita Líquida</span><span className="tabular-nums">{fmt(financial.net_revenue)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Anúncios</span><span className="tabular-nums text-destructive">-{fmt(financial.ad_spend)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Custo Produtos</span><span className="tabular-nums text-destructive">-{fmt(financial.product_cost)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Frete</span><span className="tabular-nums text-destructive">-{fmt(financial.shipping_cost)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Taxas Gateway</span><span className="tabular-nums text-destructive">-{fmt(financial.gateway_fees)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Impostos</span><span className="tabular-nums text-destructive">-{fmt(financial.taxes)}</span></div>
+            <div className="flex justify-between py-1.5 border-b border-border"><span className="text-muted-foreground">(-) Despesas Fixas</span><span className="tabular-nums text-destructive">-{fmt(financial.other_expenses)}</span></div>
+            <div className={cn('flex justify-between py-2 text-base font-bold', financial.net_profit >= 0 ? 'text-success' : 'text-destructive')}><span>= Lucro Líquido</span><span className="tabular-nums">{fmt(financial.net_profit)}</span></div>
           </div>
         </CardContent>
       </Card>

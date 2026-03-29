@@ -1,25 +1,85 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { utmData } from '@/data/mock';
+import { utmData as mockUtm } from '@/data/mock';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const bySource = utmData.reduce((acc, row) => {
-  const key = row.source;
-  if (!acc[key]) acc[key] = { source: key, visits: 0, checkouts: 0, sales: 0, revenue: 0, profit: 0, spend: 0 };
-  acc[key].visits += row.visits;
-  acc[key].checkouts += row.checkouts;
-  acc[key].sales += row.sales;
-  acc[key].revenue += row.revenue;
-  acc[key].profit += row.profit;
-  return acc;
-}, {} as Record<string, any>);
-const sourceData = Object.values(bySource);
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
+import { Database, HardDrive } from 'lucide-react';
 
 const UTMs = () => {
+  const { user } = useAuth();
+
+  const { data: utmEvents } = useQuery({
+    queryKey: ['utm_events', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('utm_events').select('*').order('revenue', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
+  const hasRealData = utmEvents && utmEvents.length > 0;
+  const displayData = hasRealData ? utmEvents.map((e: any) => ({
+    source: e.source || '', campaign: e.campaign || '', content: e.content || '', term: e.term || '',
+    visits: e.visits || 0, checkouts: e.checkouts || 0, sales: e.sales || 0,
+    revenue: Number(e.revenue || 0), profit: Number(e.profit || 0), roas: Number(e.roas || 0),
+  })) : mockUtm;
+
+  const sourceData = useMemo(() => {
+    const map: Record<string, any> = {};
+    displayData.forEach((row: any) => {
+      const key = row.source;
+      if (!map[key]) map[key] = { source: key, visits: 0, checkouts: 0, sales: 0, revenue: 0, profit: 0 };
+      map[key].visits += row.visits;
+      map[key].checkouts += row.checkouts;
+      map[key].sales += row.sales;
+      map[key].revenue += row.revenue;
+      map[key].profit += row.profit;
+    });
+    return Object.values(map);
+  }, [displayData]);
+
+  const renderTable = (data: any[], columns: { key: string; label: string; align?: string; format?: (v: any, row: any) => string; colorProfit?: boolean }[]) => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border hover:bg-transparent">
+            {columns.map(col => <TableHead key={col.key} className={cn('text-[11px]', col.align === 'right' && 'text-right')}>{col.label}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((row: any, i: number) => (
+            <TableRow key={i} className="border-border">
+              {columns.map(col => (
+                <TableCell key={col.key} className={cn('text-xs tabular-nums', col.align === 'right' && 'text-right', col.colorProfit && (row[col.key] >= 0 ? 'text-success font-medium' : 'text-destructive font-medium'))}>
+                  {col.format ? col.format(row[col.key], row) : row[col.key]}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+          {data.length === 0 && <TableRow><TableCell colSpan={columns.length} className="text-center text-xs text-muted-foreground py-8">Sem dados</TableCell></TableRow>}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   return (
     <DashboardLayout title="UTMs e Atribuição">
+      <div className="flex items-center gap-1.5 mb-3">
+        {hasRealData ? (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
+        )}
+      </div>
+
       <Tabs defaultValue="campaigns" className="animate-fade-in">
         <TabsList className="bg-secondary mb-4">
           <TabsTrigger value="campaigns" className="text-xs">Por Campanha</TabsTrigger>
@@ -31,36 +91,16 @@ const UTMs = () => {
           <Card className="border-border">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Performance por utm_campaign</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-[11px]">Fonte</TableHead>
-                      <TableHead className="text-[11px]">Campanha</TableHead>
-                      <TableHead className="text-[11px] text-right">Visitas</TableHead>
-                      <TableHead className="text-[11px] text-right">Checkouts</TableHead>
-                      <TableHead className="text-[11px] text-right">Vendas</TableHead>
-                      <TableHead className="text-[11px] text-right">Faturamento</TableHead>
-                      <TableHead className="text-[11px] text-right">Lucro</TableHead>
-                      <TableHead className="text-[11px] text-right">ROAS</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {utmData.map((row, i) => (
-                      <TableRow key={i} className="border-border">
-                        <TableCell className="text-xs text-muted-foreground">{row.source}</TableCell>
-                        <TableCell className="text-xs font-medium">{row.campaign}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.visits.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.checkouts.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.sales}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {row.revenue.toLocaleString()}</TableCell>
-                        <TableCell className={cn('text-xs text-right tabular-nums font-medium', row.profit >= 0 ? 'text-success' : 'text-destructive')}>R$ {row.profit.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.roas.toFixed(2)}x</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              {renderTable(displayData, [
+                { key: 'source', label: 'Fonte' },
+                { key: 'campaign', label: 'Campanha' },
+                { key: 'visits', label: 'Visitas', align: 'right', format: v => v.toLocaleString() },
+                { key: 'checkouts', label: 'Checkouts', align: 'right', format: v => v.toLocaleString() },
+                { key: 'sales', label: 'Vendas', align: 'right' },
+                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `R$ ${v.toLocaleString()}` },
+                { key: 'profit', label: 'Lucro', align: 'right', format: v => `R$ ${v.toLocaleString()}`, colorProfit: true },
+                { key: 'roas', label: 'ROAS', align: 'right', format: v => `${v.toFixed(2)}x` },
+              ])}
             </CardContent>
           </Card>
         </TabsContent>
@@ -69,32 +109,14 @@ const UTMs = () => {
           <Card className="border-border">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Performance por utm_source</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-[11px]">Fonte</TableHead>
-                      <TableHead className="text-[11px] text-right">Visitas</TableHead>
-                      <TableHead className="text-[11px] text-right">Checkouts</TableHead>
-                      <TableHead className="text-[11px] text-right">Vendas</TableHead>
-                      <TableHead className="text-[11px] text-right">Faturamento</TableHead>
-                      <TableHead className="text-[11px] text-right">Lucro</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sourceData.map((row: any, i: number) => (
-                      <TableRow key={i} className="border-border">
-                        <TableCell className="text-xs font-medium capitalize">{row.source}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.visits.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.checkouts.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.sales}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {row.revenue.toLocaleString()}</TableCell>
-                        <TableCell className={cn('text-xs text-right tabular-nums font-medium', row.profit >= 0 ? 'text-success' : 'text-destructive')}>R$ {row.profit.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              {renderTable(sourceData, [
+                { key: 'source', label: 'Fonte' },
+                { key: 'visits', label: 'Visitas', align: 'right', format: v => v.toLocaleString() },
+                { key: 'checkouts', label: 'Checkouts', align: 'right', format: v => v.toLocaleString() },
+                { key: 'sales', label: 'Vendas', align: 'right' },
+                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `R$ ${v.toLocaleString()}` },
+                { key: 'profit', label: 'Lucro', align: 'right', format: v => `R$ ${v.toLocaleString()}`, colorProfit: true },
+              ])}
             </CardContent>
           </Card>
         </TabsContent>
@@ -103,30 +125,13 @@ const UTMs = () => {
           <Card className="border-border">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Performance por utm_content</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-[11px]">Conteúdo</TableHead>
-                      <TableHead className="text-[11px] text-right">Vendas</TableHead>
-                      <TableHead className="text-[11px] text-right">Faturamento</TableHead>
-                      <TableHead className="text-[11px] text-right">Lucro</TableHead>
-                      <TableHead className="text-[11px] text-right">ROAS</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {utmData.filter(r => r.content).map((row, i) => (
-                      <TableRow key={i} className="border-border">
-                        <TableCell className="text-xs font-medium">{row.content}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.sales}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {row.revenue.toLocaleString()}</TableCell>
-                        <TableCell className={cn('text-xs text-right tabular-nums font-medium', row.profit >= 0 ? 'text-success' : 'text-destructive')}>R$ {row.profit.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.roas.toFixed(2)}x</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              {renderTable(displayData.filter((r: any) => r.content), [
+                { key: 'content', label: 'Conteúdo' },
+                { key: 'sales', label: 'Vendas', align: 'right' },
+                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `R$ ${v.toLocaleString()}` },
+                { key: 'profit', label: 'Lucro', align: 'right', format: v => `R$ ${v.toLocaleString()}`, colorProfit: true },
+                { key: 'roas', label: 'ROAS', align: 'right', format: v => `${v.toFixed(2)}x` },
+              ])}
             </CardContent>
           </Card>
         </TabsContent>
