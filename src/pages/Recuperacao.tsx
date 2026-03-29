@@ -2,9 +2,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { recoveryData as mockRecovery } from '@/data/mock';
 import { cn } from '@/lib/utils';
-import { RotateCcw, DollarSign, Clock, TrendingUp, Database, HardDrive } from 'lucide-react';
+import { RotateCcw, DollarSign, Clock, TrendingUp, Database, Inbox } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +12,7 @@ import { useMemo } from 'react';
 const Recuperacao = () => {
   const { user } = useAuth();
 
-  const { data: recoveries } = useQuery({
+  const { data: recoveries, isLoading } = useQuery({
     queryKey: ['recoveries', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from('recoveries').select('*').order('created_at', { ascending: false });
@@ -27,12 +26,7 @@ const Recuperacao = () => {
   const hasRealData = recoveries && recoveries.length > 0;
 
   const stats = useMemo(() => {
-    if (!hasRealData) return {
-      sent: mockRecovery.sent, recovered: mockRecovery.recovered,
-      value_recovered: mockRecovery.value_recovered, rate: mockRecovery.rate,
-      best_window: mockRecovery.best_window, channels: mockRecovery.channels,
-    };
-
+    if (!hasRealData || !recoveries) return null;
     const sent = recoveries.length;
     const converted = recoveries.filter((r: any) => r.converted).length;
     const valueRecovered = recoveries.filter((r: any) => r.converted).reduce((s: number, r: any) => s + Number(r.value || 0), 0);
@@ -50,6 +44,26 @@ const Recuperacao = () => {
     return { sent, recovered: converted, value_recovered: valueRecovered, rate, best_window: '5-15 min', channels };
   }, [hasRealData, recoveries]);
 
+  if (!hasRealData && !isLoading) {
+    return (
+      <DashboardLayout title="Recuperação">
+        <Card className="border-border">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <Inbox className="h-16 w-16 text-muted-foreground/20" />
+              <h3 className="text-lg font-semibold text-foreground">Nenhuma recuperação registrada</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                As tentativas de recuperação de vendas aparecerão aqui quando configuradas.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (!stats) return <DashboardLayout title="Recuperação"><div /></DashboardLayout>;
+
   const kpis = [
     { label: 'Recuperações Enviadas', value: stats.sent.toString(), icon: RotateCcw },
     { label: 'Vendas Recuperadas', value: stats.recovered.toString(), icon: TrendingUp },
@@ -61,11 +75,7 @@ const Recuperacao = () => {
   return (
     <DashboardLayout title="Recuperação">
       <div className="flex items-center gap-1.5 mb-3">
-        {hasRealData ? (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
-        ) : (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
-        )}
+        <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">

@@ -2,23 +2,20 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { pixPendingData as mockPix } from '@/data/mock';
 import { cn } from '@/lib/utils';
-import { Clock, AlertTriangle, DollarSign, TrendingDown, Database, HardDrive } from 'lucide-react';
+import { Clock, AlertTriangle, DollarSign, Database, Inbox } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMemo } from 'react';
 
 const PixPendentes = () => {
   const { user } = useAuth();
 
-  const { data: pixList } = useQuery({
+  const { data: pixList, isLoading } = useQuery({
     queryKey: ['pix_pending', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from('pix_pending').select('*').eq('status', 'pending').order('generated_at', { ascending: false });
       if (error) throw error;
-      // Calculate minutes_open dynamically
       return data.map((p: any) => ({
         ...p,
         minutes_open: p.minutes_open || Math.round((Date.now() - new Date(p.generated_at).getTime()) / 60000),
@@ -29,8 +26,26 @@ const PixPendentes = () => {
   });
 
   const hasRealData = pixList && pixList.length > 0;
-  const displayPix = hasRealData ? pixList : mockPix;
 
+  if (!hasRealData && !isLoading) {
+    return (
+      <DashboardLayout title="Pix Pendentes">
+        <Card className="border-border">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <Inbox className="h-16 w-16 text-muted-foreground/20" />
+              <h3 className="text-lg font-semibold text-foreground">Nenhum Pix pendente</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Os Pix pendentes aparecerão aqui automaticamente quando recebidos via webhook (evento pix.generated).
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
+  const displayPix = pixList || [];
   const totalPending = displayPix.reduce((a: number, b: any) => a + Number(b.value || 0), 0);
   const avgMinutes = displayPix.length > 0 ? Math.round(displayPix.reduce((a: number, b: any) => a + (b.minutes_open || 0), 0) / displayPix.length) : 0;
   const urgentCount = displayPix.filter((p: any) => (p.minutes_open || 0) > 60).length;
@@ -45,11 +60,7 @@ const PixPendentes = () => {
   return (
     <DashboardLayout title="Pix Pendentes">
       <div className="flex items-center gap-1.5 mb-3">
-        {hasRealData ? (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
-        ) : (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
-        )}
+        <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -109,9 +120,6 @@ const PixPendentes = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {displayPix.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">Nenhum pix pendente</TableCell></TableRow>
-                )}
               </TableBody>
             </Table>
           </div>

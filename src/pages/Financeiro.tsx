@@ -2,9 +2,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { KPICard } from '@/components/dashboard/KPICard';
-import { financialSummary as mockFinancial, dailyProjection as mockProjection } from '@/data/mock';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { Target, Database, HardDrive } from 'lucide-react';
+import { Target, Database, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +13,7 @@ import { useMemo } from 'react';
 const Financeiro = () => {
   const { user } = useAuth();
 
-  const { data: orders } = useQuery({
+  const { data: orders, isLoading } = useQuery({
     queryKey: ['orders-financial', user?.id],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
@@ -38,7 +37,7 @@ const Financeiro = () => {
   const hasRealData = orders && orders.length > 0;
 
   const financial = useMemo(() => {
-    if (!hasRealData) return mockFinancial;
+    if (!hasRealData || !orders) return null;
     const approved = orders.filter((o: any) => o.payment_status === 'approved');
     const gross = orders.reduce((s: number, o: any) => s + Number(o.gross_value || 0), 0);
     const netRevenue = approved.reduce((s: number, o: any) => s + Number(o.gross_value || 0), 0);
@@ -58,6 +57,26 @@ const Financeiro = () => {
   }, [hasRealData, orders, costSettings]);
 
   const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+  if (!hasRealData && !isLoading) {
+    return (
+      <DashboardLayout title="Financeiro">
+        <Card className="border-border">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <Inbox className="h-16 w-16 text-muted-foreground/20" />
+              <h3 className="text-lg font-semibold text-foreground">Sem dados financeiros</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                O relatório financeiro aparecerá automaticamente quando vendas forem recebidas via webhook.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (!financial) return <DashboardLayout title="Financeiro"><div /></DashboardLayout>;
 
   const finKPIs = [
     { label: 'Receita Bruta', value: fmt(financial.gross_revenue), change: 0, changeLabel: 'hoje', tooltip: 'Soma de todas as vendas brutas' },
@@ -81,7 +100,6 @@ const Financeiro = () => {
     { name: 'Fixas', value: financial.other_expenses },
   ];
 
-  // Projection based on current hour
   const now = new Date();
   const hoursElapsed = now.getHours() + now.getMinutes() / 60;
   const projectedRevenue = hoursElapsed > 0 ? (financial.gross_revenue / hoursElapsed) * 24 : 0;
@@ -90,11 +108,7 @@ const Financeiro = () => {
   return (
     <DashboardLayout title="Financeiro">
       <div className="flex items-center gap-1.5 mb-3">
-        {hasRealData ? (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais ({orders.length} pedidos hoje)</Badge>
-        ) : (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
-        )}
+        <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais ({orders!.length} pedidos hoje)</Badge>
       </div>
 
       {/* Projection */}

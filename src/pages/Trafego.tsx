@@ -2,19 +2,18 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { campaigns as mockCampaigns } from '@/data/mock';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
-import { Database, HardDrive } from 'lucide-react';
+import { Database, Inbox } from 'lucide-react';
 
 const Trafego = () => {
   const { user } = useAuth();
 
-  const { data: campaigns } = useQuery({
+  const { data: campaigns, isLoading } = useQuery({
     queryKey: ['campaigns', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from('campaigns').select('*').order('spend', { ascending: false });
@@ -26,11 +25,11 @@ const Trafego = () => {
   });
 
   const hasRealData = campaigns && campaigns.length > 0;
-  const displayCampaigns = hasRealData ? campaigns : mockCampaigns;
 
   const platformMetrics = useMemo(() => {
+    if (!hasRealData || !campaigns) return [];
     const platformMap: Record<string, { name: string; spend: number; sales: number; revenue: number; profit: number }> = {};
-    displayCampaigns.forEach((c: any) => {
+    campaigns.forEach((c: any) => {
       const key = c.platform;
       if (!platformMap[key]) platformMap[key] = { name: `${key} Ads`, spend: 0, sales: 0, revenue: 0, profit: 0 };
       platformMap[key].spend += Number(c.spend || 0);
@@ -39,16 +38,30 @@ const Trafego = () => {
       platformMap[key].profit += Number(c.profit || 0);
     });
     return Object.values(platformMap).map(p => ({ ...p, roas: p.spend > 0 ? p.revenue / p.spend : 0 }));
-  }, [displayCampaigns]);
+  }, [hasRealData, campaigns]);
+
+  if (!hasRealData && !isLoading) {
+    return (
+      <DashboardLayout title="Tráfego">
+        <Card className="border-border">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <Inbox className="h-16 w-16 text-muted-foreground/20" />
+              <h3 className="text-lg font-semibold text-foreground">Nenhuma campanha registrada</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                As campanhas aparecerão aqui quando você integrar suas plataformas de ads (Meta, Google, TikTok) ou enviar dados via webhook.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Tráfego">
       <div className="flex items-center gap-1.5 mb-3">
-        {hasRealData ? (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
-        ) : (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
-        )}
+        <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
       </div>
 
       {/* Platform Overview */}
@@ -114,7 +127,7 @@ const Trafego = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayCampaigns.map((c: any, i: number) => (
+                {campaigns!.map((c: any, i: number) => (
                   <TableRow key={c.id || i} className="border-border">
                     <TableCell className="text-xs font-medium max-w-[200px] truncate">{c.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{c.platform}</TableCell>

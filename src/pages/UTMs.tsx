@@ -2,19 +2,18 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { utmData as mockUtm } from '@/data/mock';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
-import { Database, HardDrive } from 'lucide-react';
+import { Database, Inbox } from 'lucide-react';
 
 const UTMs = () => {
   const { user } = useAuth();
 
-  const { data: utmEvents } = useQuery({
+  const { data: utmEvents, isLoading } = useQuery({
     queryKey: ['utm_events', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from('utm_events').select('*').order('revenue', { ascending: false });
@@ -30,7 +29,7 @@ const UTMs = () => {
     source: e.source || '', campaign: e.campaign || '', content: e.content || '', term: e.term || '',
     visits: e.visits || 0, checkouts: e.checkouts || 0, sales: e.sales || 0,
     revenue: Number(e.revenue || 0), profit: Number(e.profit || 0), roas: Number(e.roas || 0),
-  })) : mockUtm;
+  })) : [];
 
   const sourceData = useMemo(() => {
     const map: Record<string, any> = {};
@@ -70,14 +69,28 @@ const UTMs = () => {
     </div>
   );
 
+  if (!hasRealData && !isLoading) {
+    return (
+      <DashboardLayout title="UTMs e Atribuição">
+        <Card className="border-border">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <Inbox className="h-16 w-16 text-muted-foreground/20" />
+              <h3 className="text-lg font-semibold text-foreground">Nenhum dado de UTM registrado</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Os dados de atribuição aparecerão aqui quando vendas com parâmetros UTM forem recebidas via webhook.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="UTMs e Atribuição">
       <div className="flex items-center gap-1.5 mb-3">
-        {hasRealData ? (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
-        ) : (
-          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
-        )}
+        <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
       </div>
 
       <Tabs defaultValue="campaigns" className="animate-fade-in">
