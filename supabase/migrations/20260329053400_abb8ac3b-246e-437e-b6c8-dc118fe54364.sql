@@ -1,0 +1,1 @@
+ALTER TABLE public.user_devices ADD CONSTRAINT user_devices_user_id_device_token_key UNIQUE (user_id, device_token);
