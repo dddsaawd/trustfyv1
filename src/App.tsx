@@ -20,6 +20,7 @@ import Relatorios from "./pages/Relatorios";
 import Integracoes from "./pages/Integracoes";
 import Configuracoes from "./pages/Configuracoes";
 import ModoEscala from "./pages/ModoEscala";
+import Instalar from "./pages/Instalar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/integracoes" element={<ProtectedPage><Integracoes /></ProtectedPage>} />
             <Route path="/configuracoes" element={<ProtectedPage><Configuracoes /></ProtectedPage>} />
             <Route path="/modo-escala" element={<ProtectedPage><ModoEscala /></ProtectedPage>} />
+            <Route path="/instalar" element={<Instalar />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
