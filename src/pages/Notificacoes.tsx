@@ -1,9 +1,11 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { notifications } from '@/data/mock';
 import { cn } from '@/lib/utils';
-import { Bell, ShoppingCart, DollarSign, Target, TrendingDown, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Bell, ShoppingCart, DollarSign, Target, TrendingDown, AlertTriangle, BarChart3, Inbox } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const iconMap: Record<string, any> = {
   sale: ShoppingCart,
@@ -30,10 +32,43 @@ const colorMap: Record<string, string> = {
 };
 
 const Notificacoes = () => {
+  const { user } = useAuth();
+
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
+
+  const hasData = notifications && notifications.length > 0;
+
+  if (!hasData && !isLoading) {
+    return (
+      <DashboardLayout title="Notificações">
+        <Card className="border-border">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <Inbox className="h-16 w-16 text-muted-foreground/20" />
+              <h3 className="text-lg font-semibold text-foreground">Nenhuma notificação</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                As notificações aparecerão aqui quando vendas, alertas ou resumos forem gerados pelo sistema.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="Notificações">
       <div className="max-w-2xl space-y-2">
-        {notifications.map((n, i) => {
+        {(notifications || []).map((n: any, i: number) => {
           const Icon = iconMap[n.type] || Bell;
           return (
             <Card key={n.id} className={cn('border-border transition-all duration-200 hover:border-primary/20 animate-fade-in', !n.read && 'border-l-2 border-l-primary')} style={{ animationDelay: `${i * 60}ms` }}>
