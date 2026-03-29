@@ -2,20 +2,55 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { campaigns } from '@/data/mock';
+import { campaigns as mockCampaigns } from '@/data/mock';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-
-const platformMetrics = [
-  { name: 'Meta Ads', spend: 2700, sales: 125, revenue: 15820, profit: 7220, roas: 5.86, color: 'hsl(217, 91%, 60%)' },
-  { name: 'Google Ads', spend: 720, sales: 27, revenue: 3480, profit: 1340, roas: 4.83, color: 'hsl(25, 95%, 53%)' },
-  { name: 'TikTok Ads', spend: 620, sales: 15, revenue: 2120, profit: 680, roas: 3.42, color: 'hsl(280, 65%, 60%)' },
-  { name: 'Kwai Ads', spend: 178, sales: 5, revenue: 413, profit: -42, roas: 2.32, color: 'hsl(152, 69%, 45%)' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
+import { Database, HardDrive } from 'lucide-react';
 
 const Trafego = () => {
+  const { user } = useAuth();
+
+  const { data: campaigns } = useQuery({
+    queryKey: ['campaigns', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('campaigns').select('*').order('spend', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
+  const hasRealData = campaigns && campaigns.length > 0;
+  const displayCampaigns = hasRealData ? campaigns : mockCampaigns;
+
+  const platformMetrics = useMemo(() => {
+    const platformMap: Record<string, { name: string; spend: number; sales: number; revenue: number; profit: number }> = {};
+    displayCampaigns.forEach((c: any) => {
+      const key = c.platform;
+      if (!platformMap[key]) platformMap[key] = { name: `${key} Ads`, spend: 0, sales: 0, revenue: 0, profit: 0 };
+      platformMap[key].spend += Number(c.spend || 0);
+      platformMap[key].sales += Number(c.conversions || 0);
+      platformMap[key].revenue += Number(c.revenue || 0);
+      platformMap[key].profit += Number(c.profit || 0);
+    });
+    return Object.values(platformMap).map(p => ({ ...p, roas: p.spend > 0 ? p.revenue / p.spend : 0 }));
+  }, [displayCampaigns]);
+
   return (
     <DashboardLayout title="Tráfego">
+      <div className="flex items-center gap-1.5 mb-3">
+        {hasRealData ? (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30"><Database className="h-2.5 w-2.5" /> Dados Reais</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[9px] gap-1 bg-warning/10 text-warning border-warning/30"><HardDrive className="h-2.5 w-2.5" /> Dados Demonstração</Badge>
+        )}
+      </div>
+
       {/* Platform Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {platformMetrics.map((p, i) => (
@@ -39,11 +74,9 @@ const Trafego = () => {
         ))}
       </div>
 
-      {/* ROAS by Platform Chart */}
+      {/* ROAS Chart */}
       <Card className="border-border mb-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">ROAS por Plataforma</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">ROAS por Plataforma</CardTitle></CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={platformMetrics}>
@@ -59,9 +92,7 @@ const Trafego = () => {
 
       {/* Campaigns Table */}
       <Card className="border-border animate-fade-in" style={{ animationDelay: '350ms' }}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Performance por Campanha</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Performance por Campanha</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -83,20 +114,20 @@ const Trafego = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((c, i) => (
-                  <TableRow key={i} className="border-border">
+                {displayCampaigns.map((c: any, i: number) => (
+                  <TableRow key={c.id || i} className="border-border">
                     <TableCell className="text-xs font-medium max-w-[200px] truncate">{c.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{c.platform}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">R$ {c.spend.toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{c.impressions.toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {c.cpm.toFixed(2)}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{c.ctr.toFixed(2)}%</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {c.cpc.toFixed(2)}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">{c.cpa.toFixed(2)}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">{c.conversions}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">R$ {c.revenue.toLocaleString()}</TableCell>
-                    <TableCell className={cn('text-xs text-right tabular-nums font-medium', c.profit >= 0 ? 'text-success' : 'text-destructive')}>R$ {c.profit.toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">{c.roas.toFixed(2)}x</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">R$ {Number(c.spend || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{Number(c.impressions || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {Number(c.cpm || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{Number(c.ctr || 0).toFixed(2)}%</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {Number(c.cpc || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{Number(c.cpa || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{c.conversions || 0}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">R$ {Number(c.revenue || 0).toLocaleString()}</TableCell>
+                    <TableCell className={cn('text-xs text-right tabular-nums font-medium', Number(c.profit || 0) >= 0 ? 'text-success' : 'text-destructive')}>R$ {Number(c.profit || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{Number(c.roas || 0).toFixed(2)}x</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={c.score === 'scale' ? 'default' : c.score === 'watch' ? 'secondary' : 'destructive'}
                         className={cn('text-[9px] px-1.5', c.score === 'scale' && 'bg-success/20 text-success border-success/30 hover:bg-success/30')}>
