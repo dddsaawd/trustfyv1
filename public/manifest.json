@@ -1,0 +1,26 @@
+{
+  "name": "TRUSTFY — Dashboard de Operação",
+  "short_name": "TRUSTFY",
+  "description": "Dashboard premium de operação, lucro e escala para dropshipping e tráfego pago",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0E1A",
+  "theme_color": "#0A0E1A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"],
+  "lang": "pt-BR"
+}
