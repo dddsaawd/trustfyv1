@@ -108,7 +108,18 @@ Deno.serve(async (req) => {
       throw new Error('FIREBASE_SERVICE_ACCOUNT secret not configured')
     }
 
-    const serviceAccount = JSON.parse(serviceAccountJson)
+    let serviceAccount: any
+    try {
+      serviceAccount = JSON.parse(serviceAccountJson)
+    } catch {
+      // Maybe it was double-encoded
+      serviceAccount = JSON.parse(JSON.parse(serviceAccountJson))
+    }
+
+    console.log('SA keys:', Object.keys(serviceAccount))
+    if (!serviceAccount.private_key) {
+      throw new Error('private_key missing from service account. Keys found: ' + Object.keys(serviceAccount).join(', '))
+    }
     const { user_id, title, body, data } = await req.json()
 
     if (!user_id || !title || !body) {
