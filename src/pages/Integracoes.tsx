@@ -41,8 +41,10 @@ const Integracoes = () => {
   const [testResult, setTestResult] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [metaSyncing, setMetaSyncing] = useState(false);
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const webhookUrl = `https://${projectId}.supabase.co/functions/v1/webhook-checkout?user_id=${user?.id || ''}`;
 
   useEffect(() => {
