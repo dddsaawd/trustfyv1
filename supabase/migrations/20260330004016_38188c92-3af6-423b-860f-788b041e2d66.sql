@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS campaigns_user_name_platform_unique ON public.campaigns (user_id, name, platform);
+CREATE UNIQUE INDEX IF NOT EXISTS ad_accounts_user_account_unique ON public.ad_accounts (user_id, account_id);

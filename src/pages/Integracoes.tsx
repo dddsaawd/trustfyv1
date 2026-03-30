@@ -41,9 +41,24 @@ const Integracoes = () => {
   const [testResult, setTestResult] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [metaSyncing, setMetaSyncing] = useState(false);
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const webhookUrl = `https://${projectId}.supabase.co/functions/v1/webhook-checkout?user_id=${user?.id || ''}`;
+
+  // Handle Meta OAuth redirect results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('meta_success')) {
+      toast.success('Meta Ads conectado com sucesso!');
+      window.history.replaceState({}, '', '/integracoes');
+    }
+    if (params.get('meta_error')) {
+      toast.error(`Erro Meta Ads: ${params.get('meta_error')}`);
+      window.history.replaceState({}, '', '/integracoes');
+    }
+  }, []);
 
   useEffect(() => {
     if (user) fetchIntegrations();
@@ -155,6 +170,49 @@ const Integracoes = () => {
       toast.error('JSON inválido ou erro de rede');
     }
     setTestLoading(false);
+  };
+
+  const handleConnectMeta = () => {
+    if (!user) return;
+    const callbackUrl = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
+    const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: window.location.origin }));
+    const appId = '1988650625399560';
+    const scopes = 'ads_read,ads_management,business_management';
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scopes}&response_type=code`;
+    window.location.href = oauthUrl;
+  };
+
+  const handleSyncMeta = async () => {
+    if (!user) return;
+    setMetaSyncing(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/meta-sync-campaigns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        toast.success(`${json.campaigns_synced} campanhas sincronizadas!`);
+        fetchIntegrations();
+      } else {
+        toast.error(json.error || 'Erro ao sincronizar');
+      }
+    } catch (e: any) {
+      toast.error('Erro de rede ao sincronizar');
+    }
+    setMetaSyncing(false);
+  };
+
+  const handleDisconnectMeta = async () => {
+    if (!user) return;
+    await supabase
+      .from('integrations')
+      .update({ status: 'disconnected', config: null })
+      .eq('user_id', user.id)
+      .eq('platform', 'meta');
+    toast.success('Meta Ads desconectado');
+    fetchIntegrations();
   };
 
   const getIcon = (platform: string) => {
@@ -318,22 +376,45 @@ x-webhook-secret: sua_chave_secreta (opcional)
                       <div>
                         <p className="text-sm font-semibold text-foreground">{intg.name}</p>
                         <Badge variant={intg.status === 'connected' ? 'default' : 'secondary'}
-                          className={cn('text-[9px] mt-1', intg.status === 'connected' ? 'bg-success/20 text-success border-success/30 hover:bg-success/30' : '')}>
+                          className={cn('text-[9px] mt-1', intg.status === 'connected' ? 'bg-success/20 text-success border-success/30 hover:bg-success/30' : intg.status === 'error' ? 'bg-destructive/20 text-destructive border-destructive/30' : '')}>
                           {intg.status === 'connected' ? <CheckCircle className="h-2.5 w-2.5 mr-1" /> : <XCircle className="h-2.5 w-2.5 mr-1" />}
-                          {intg.status === 'connected' ? 'Conectado' : intg.status === 'error' ? 'Erro' : 'Desconectado'}
+                          {intg.status === 'connected' ? 'Conectado' : intg.status === 'error' ? 'Token Expirado' : 'Desconectado'}
                         </Badge>
                       </div>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">{intg.description}</p>
+                  {intg.platform === 'meta' && intg.status === 'connected' && (intg.config as any)?.fb_user_name && (
+                    <p className="text-[10px] text-primary mb-1">👤 {(intg.config as any).fb_user_name} — {((intg.config as any).ad_accounts?.length || 0)} conta(s)</p>
+                  )}
                   {intg.last_sync && (
                     <p className="text-[10px] text-muted-foreground/60 mb-3">
                       Última sync: {new Date(intg.last_sync).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
-                  <Button variant={intg.status === 'connected' ? 'outline' : 'default'} size="sm" className="w-full text-xs h-8">
-                    {intg.status === 'connected' ? 'Configurar' : 'Em breve'}
-                  </Button>
+                  {intg.platform === 'meta' ? (
+                    <div className="flex gap-2">
+                      {intg.status === 'connected' ? (
+                        <>
+                          <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={handleSyncMeta} disabled={metaSyncing}>
+                            {metaSyncing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                            Sincronizar
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-xs h-8 text-destructive hover:text-destructive" onClick={handleDisconnectMeta}>
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" className="w-full text-xs h-8" onClick={handleConnectMeta}>
+                          <Globe className="h-3.5 w-3.5 mr-1" /> Conectar com Facebook
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Button variant={intg.status === 'connected' ? 'outline' : 'default'} size="sm" className="w-full text-xs h-8" disabled>
+                      Em breve
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
