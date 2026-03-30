@@ -176,7 +176,7 @@ const Integracoes = () => {
     if (!user) return;
     const callbackUrl = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
     const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: window.location.origin }));
-    const appId = '1988650625399560';
+    const appId = '1254565673413567';
     const scopes = 'ads_read,ads_management,business_management';
     const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scopes}&response_type=code`;
     window.location.href = oauthUrl;
