@@ -45,6 +45,148 @@ interface WebhookPayload {
   data: WebhookOrder | WebhookProduct | any
 }
 
+// Corvex payload format
+interface CorvexPayload {
+  id: string
+  event: string
+  amount: number
+  status: string
+  method: string
+  client: {
+    name: string
+    email: string
+    phone: string
+    doc: string
+  }
+  items: Array<{
+    id: string
+    name: string
+    price: number
+    quantity: number
+    externalRef?: string
+    orderBump?: boolean
+    gift?: boolean
+  }>
+  timestamp: string
+  address?: {
+    city?: string
+    state?: string
+    number?: string
+    street?: string
+    zipcode?: string
+    complement?: string | null
+    neighborhood?: string
+  }
+  utm?: {
+    fbc?: string
+    fbp?: string
+    ttp?: string
+    page?: { url?: string; referrer?: string }
+    term?: string
+    medium?: string
+    source?: string
+    ttclid?: string
+    content?: string
+    campaign?: string
+  }
+}
+
+function isCorvexPayload(payload: any): payload is CorvexPayload {
+  return payload.event && typeof payload.event === 'string' && payload.event.startsWith('corvex.')
+}
+
+function mapCorvexStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
+  const map: Record<string, 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'> = {
+    'approved': 'approved',
+    'paid': 'approved',
+    'completed': 'approved',
+    'pending': 'pending',
+    'waiting_payment': 'pending',
+    'refused': 'refused',
+    'declined': 'refused',
+    'cancelled': 'refused',
+    'refunded': 'refunded',
+    'chargeback': 'chargeback',
+  }
+  return map[status] || 'pending'
+}
+
+function mapCorvexMethod(method: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
+  const map: Record<string, 'pix' | 'credit_card' | 'boleto' | 'debit'> = {
+    'pix': 'pix',
+    'credit_card': 'credit_card',
+    'credit': 'credit_card',
+    'boleto': 'boleto',
+    'debit': 'debit',
+  }
+  return map[method] || 'pix'
+}
+
+function mapCorvexEvent(event: string): string {
+  const map: Record<string, string> = {
+    'corvex.order.created': 'order.created',
+    'corvex.order.approved': 'order.paid',
+    'corvex.order.paid': 'order.paid',
+    'corvex.order.completed': 'order.paid',
+    'corvex.order.refused': 'order.updated',
+    'corvex.order.cancelled': 'order.updated',
+    'corvex.order.refunded': 'order.refunded',
+    'corvex.order.chargeback': 'order.updated',
+    'corvex.pix.generated': 'pix.generated',
+    'corvex.pix.paid': 'pix.paid',
+    'corvex.pix.expired': 'pix.expired',
+  }
+  return map[event] || 'order.created'
+}
+
+function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
+  const normalizedEvent = mapCorvexEvent(corvex.event)
+  const mainItem = corvex.items?.[0]
+  const allProductNames = corvex.items?.map(i => i.name).join(', ') || 'Produto'
+  const totalValue = corvex.amount || corvex.items?.reduce((sum, i) => sum + (i.price * i.quantity), 0) || 0
+
+  if (normalizedEvent.startsWith('pix.')) {
+    return {
+      event: normalizedEvent as WebhookPayload['event'],
+      data: {
+        order_id: corvex.id,
+        order_number: corvex.id,
+        customer_name: corvex.client?.name || 'Cliente',
+        customer_phone: corvex.client?.phone || null,
+        product_name: allProductNames,
+        value: totalValue,
+        campaign_name: corvex.utm?.campaign || null,
+        utm_source: corvex.utm?.source || null,
+      }
+    }
+  }
+
+  const order: WebhookOrder = {
+    order_number: corvex.id,
+    customer_name: corvex.client?.name || 'Cliente',
+    customer_email: corvex.client?.email || undefined,
+    customer_phone: corvex.client?.phone || undefined,
+    product_name: allProductNames,
+    product_sku: mainItem?.externalRef || undefined,
+    gross_value: totalValue,
+    payment_method: mapCorvexMethod(corvex.method),
+    payment_status: mapCorvexStatus(corvex.status),
+    platform: 'corvex',
+    utm_source: corvex.utm?.source || undefined,
+    utm_campaign: corvex.utm?.campaign || undefined,
+    utm_content: corvex.utm?.content || undefined,
+    utm_term: corvex.utm?.term || undefined,
+    state: corvex.address?.state || undefined,
+    city: corvex.address?.city || undefined,
+    created_at: corvex.timestamp,
+  }
+
+  return {
+    event: normalizedEvent as WebhookPayload['event'],
+    data: order,
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -104,7 +246,17 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .single()
 
-    const payload: WebhookPayload = await req.json()
+    const rawPayload = await req.json()
+    
+    // Auto-detect Corvex payload and normalize
+    let payload: WebhookPayload
+    if (isCorvexPayload(rawPayload)) {
+      console.log('Corvex payload detected, normalizing...', rawPayload.event)
+      payload = normalizeCorvexPayload(rawPayload)
+    } else {
+      payload = rawPayload as WebhookPayload
+    }
+    
     const { event, data } = payload
 
     let result: any = null
