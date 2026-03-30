@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     if (errorParam) {
       const errorDesc = url.searchParams.get('error_description') || 'Permissão negada'
       const stateData = state ? JSON.parse(atob(state)) : {}
-      const redirectUrl = stateData.redirect_url || 'https://trustfyv1.lovable.app'
+      const redirectUrl = 'https://trustfyv1.lovable.app'
       return Response.redirect(`${redirectUrl}/integracoes?meta_error=${encodeURIComponent(errorDesc)}`, 302)
     }
 
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     const stateData = JSON.parse(atob(state))
     const userId = stateData.user_id
-    const redirectUrl = stateData.redirect_url || 'https://trustfyv1.lovable.app'
+    const redirectUrl = 'https://trustfyv1.lovable.app'
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Missing user_id in state' }), {
