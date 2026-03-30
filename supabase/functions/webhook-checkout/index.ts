@@ -246,7 +246,17 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .single()
 
-    const payload: WebhookPayload = await req.json()
+    const rawPayload = await req.json()
+    
+    // Auto-detect Corvex payload and normalize
+    let payload: WebhookPayload
+    if (isCorvexPayload(rawPayload)) {
+      console.log('Corvex payload detected, normalizing...', rawPayload.event)
+      payload = normalizeCorvexPayload(rawPayload)
+    } else {
+      payload = rawPayload as WebhookPayload
+    }
+    
     const { event, data } = payload
 
     let result: any = null
