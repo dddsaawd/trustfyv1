@@ -376,22 +376,45 @@ x-webhook-secret: sua_chave_secreta (opcional)
                       <div>
                         <p className="text-sm font-semibold text-foreground">{intg.name}</p>
                         <Badge variant={intg.status === 'connected' ? 'default' : 'secondary'}
-                          className={cn('text-[9px] mt-1', intg.status === 'connected' ? 'bg-success/20 text-success border-success/30 hover:bg-success/30' : '')}>
+                          className={cn('text-[9px] mt-1', intg.status === 'connected' ? 'bg-success/20 text-success border-success/30 hover:bg-success/30' : intg.status === 'error' ? 'bg-destructive/20 text-destructive border-destructive/30' : '')}>
                           {intg.status === 'connected' ? <CheckCircle className="h-2.5 w-2.5 mr-1" /> : <XCircle className="h-2.5 w-2.5 mr-1" />}
-                          {intg.status === 'connected' ? 'Conectado' : intg.status === 'error' ? 'Erro' : 'Desconectado'}
+                          {intg.status === 'connected' ? 'Conectado' : intg.status === 'error' ? 'Token Expirado' : 'Desconectado'}
                         </Badge>
                       </div>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">{intg.description}</p>
+                  {intg.platform === 'meta' && intg.status === 'connected' && (intg.config as any)?.fb_user_name && (
+                    <p className="text-[10px] text-primary mb-1">👤 {(intg.config as any).fb_user_name} — {((intg.config as any).ad_accounts?.length || 0)} conta(s)</p>
+                  )}
                   {intg.last_sync && (
                     <p className="text-[10px] text-muted-foreground/60 mb-3">
                       Última sync: {new Date(intg.last_sync).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
-                  <Button variant={intg.status === 'connected' ? 'outline' : 'default'} size="sm" className="w-full text-xs h-8">
-                    {intg.status === 'connected' ? 'Configurar' : 'Em breve'}
-                  </Button>
+                  {intg.platform === 'meta' ? (
+                    <div className="flex gap-2">
+                      {intg.status === 'connected' ? (
+                        <>
+                          <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={handleSyncMeta} disabled={metaSyncing}>
+                            {metaSyncing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                            Sincronizar
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-xs h-8 text-destructive hover:text-destructive" onClick={handleDisconnectMeta}>
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" className="w-full text-xs h-8" onClick={handleConnectMeta}>
+                          <Globe className="h-3.5 w-3.5 mr-1" /> Conectar com Facebook
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Button variant={intg.status === 'connected' ? 'outline' : 'default'} size="sm" className="w-full text-xs h-8" disabled>
+                      Em breve
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
