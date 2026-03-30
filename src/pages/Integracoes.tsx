@@ -172,6 +172,49 @@ const Integracoes = () => {
     setTestLoading(false);
   };
 
+  const handleConnectMeta = () => {
+    if (!user) return;
+    const callbackUrl = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
+    const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: window.location.origin }));
+    const appId = '1988650625399560';
+    const scopes = 'ads_read,ads_management,business_management';
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scopes}&response_type=code`;
+    window.location.href = oauthUrl;
+  };
+
+  const handleSyncMeta = async () => {
+    if (!user) return;
+    setMetaSyncing(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/meta-sync-campaigns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        toast.success(`${json.campaigns_synced} campanhas sincronizadas!`);
+        fetchIntegrations();
+      } else {
+        toast.error(json.error || 'Erro ao sincronizar');
+      }
+    } catch (e: any) {
+      toast.error('Erro de rede ao sincronizar');
+    }
+    setMetaSyncing(false);
+  };
+
+  const handleDisconnectMeta = async () => {
+    if (!user) return;
+    await supabase
+      .from('integrations')
+      .update({ status: 'disconnected', config: null })
+      .eq('user_id', user.id)
+      .eq('platform', 'meta');
+    toast.success('Meta Ads desconectado');
+    fetchIntegrations();
+  };
+
   const getIcon = (platform: string) => {
     const Icon = PLATFORM_ICONS[platform] || Plug;
     return <Icon className="h-5 w-5 text-muted-foreground" />;
