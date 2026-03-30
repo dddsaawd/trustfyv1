@@ -175,7 +175,10 @@ const Integracoes = () => {
   const handleConnectMeta = () => {
     if (!user) return;
     const callbackUrl = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
-    const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: window.location.origin }));
+    const redirectOrigin = window.location.origin.includes('lovable.app') 
+      ? window.location.origin 
+      : 'https://trustfyv1.lovable.app';
+    const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: redirectOrigin }));
     const appId = '1254565673413567';
     const scopes = 'ads_read,ads_management,business_management,pages_read_engagement,pages_show_list';
     const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scopes}&response_type=code`;
