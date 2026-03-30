@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     const stateData = JSON.parse(atob(state))
     const userId = stateData.user_id
-    const redirectUrl = stateData.redirect_url || 'https://trustfyv1.lovable.app'
+    const redirectUrl = 'https://trustfyv1.lovable.app'
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Missing user_id in state' }), {
