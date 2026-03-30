@@ -47,6 +47,19 @@ const Integracoes = () => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const webhookUrl = `https://${projectId}.supabase.co/functions/v1/webhook-checkout?user_id=${user?.id || ''}`;
 
+  // Handle Meta OAuth redirect results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('meta_success')) {
+      toast.success('Meta Ads conectado com sucesso!');
+      window.history.replaceState({}, '', '/integracoes');
+    }
+    if (params.get('meta_error')) {
+      toast.error(`Erro Meta Ads: ${params.get('meta_error')}`);
+      window.history.replaceState({}, '', '/integracoes');
+    }
+  }, []);
+
   useEffect(() => {
     if (user) fetchIntegrations();
   }, [user]);
