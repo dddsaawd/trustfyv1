@@ -261,6 +261,21 @@ export function useDashboardData(): DashboardData {
     refetchInterval: 30000,
   });
 
+  const { data: installmentRates } = useQuery({
+    queryKey: ['dashboard-installment-rates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('installment_rates' as any)
+        .select('installments, rate_percent');
+      if (error) return {};
+      const map: Record<number, number> = {};
+      for (const r of (data as any[]) || []) {
+        map[r.installments] = Number(r.rate_percent);
+      }
+      return map;
+    },
+  });
+
   const isLoading = loadingOrders || loadingCosts || loadingCampaigns;
   const hasRealData = !!(orders && orders.length > 0);
 
