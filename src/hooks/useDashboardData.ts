@@ -292,7 +292,7 @@ export function useDashboardData(): DashboardData {
       return s;
     }, 0);
 
-    const totalAdSpend = campaigns?.reduce((s, c) => s + (c.spend || 0), 0) ?? 0;
+    const totalAdSpend = campaignSpendBRL ?? 0;
     const netProfit = netRevenue - totalProductCost - totalGatewayFee - totalShipping - totalTax - totalAdSpend;
     const roas = totalAdSpend > 0 ? grossRevenue / totalAdSpend : 0;
     const totalCost = totalProductCost + totalGatewayFee + totalShipping + totalTax + totalAdSpend;
