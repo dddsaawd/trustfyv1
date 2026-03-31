@@ -88,11 +88,13 @@ const Trafego = () => {
   const filteredCampaigns = useMemo(() => {
     if (!campaigns) return [];
     return campaigns.filter(c => {
+      // If accounts are selected, only show campaigns from those accounts
+      if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(c.ad_account_id || '')) return false;
       if (nameFilter && !c.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       return true;
     });
-  }, [campaigns, nameFilter, statusFilter]);
+  }, [campaigns, nameFilter, statusFilter, selectedAccountIds]);
 
   // Aggregated totals
   const totals = useMemo(() => {
