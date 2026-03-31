@@ -182,70 +182,75 @@ export function useDashboardData(): DashboardData {
     },
   });
 
+  const isToday = filters.dateRange === 'today';
+
   const { data: campaignSpendBRL, isLoading: loadingCampaigns } = useQuery({
-    queryKey: ['dashboard-campaigns-brl'],
+    queryKey: ['dashboard-campaigns-brl', start, end, isToday],
     queryFn: async () => {
-      // 1. Get active accounts with currency
-      const { data: activeAccounts } = await supabase
-        .from('ad_accounts')
-        .select('id, currency')
-        .eq('active', true);
-      if (!activeAccounts || activeAccounts.length === 0) return 0;
+      if (isToday) {
+        // Real-time: sum from campaigns table with currency conversion
+        const { data: activeAccounts } = await supabase
+          .from('ad_accounts')
+          .select('id, currency')
+          .eq('active', true);
+        if (!activeAccounts || activeAccounts.length === 0) return 0;
 
-      // 2. Identify unique foreign currencies
-      const currencies = [...new Set(
-        activeAccounts.map(a => (a.currency || 'BRL').toUpperCase()).filter(c => c !== 'BRL')
-      )];
+        const currencies = [...new Set(
+          activeAccounts.map(a => (a.currency || 'BRL').toUpperCase()).filter(c => c !== 'BRL')
+        )];
 
-      // 3. Fetch exchange rates to BRL if needed
-      let rates: Record<string, number> = {};
-      if (currencies.length > 0) {
-        try {
-          const res = await fetch(`https://open.er-api.com/v6/latest/BRL`);
-          const json = await res.json();
-          if (json.result === 'success' && json.rates) {
-            // json.rates has BRL-based rates, we need inverse: 1 USD = X BRL
-            for (const c of currencies) {
-              if (json.rates[c]) {
-                rates[c] = 1 / json.rates[c]; // e.g. 1 USD = ~5.5 BRL
+        let rates: Record<string, number> = {};
+        if (currencies.length > 0) {
+          try {
+            const res = await fetch(`https://open.er-api.com/v6/latest/BRL`);
+            const json = await res.json();
+            if (json.result === 'success' && json.rates) {
+              for (const c of currencies) {
+                if (json.rates[c]) rates[c] = 1 / json.rates[c];
               }
             }
+          } catch {
+            rates = { USD: 5.50, EUR: 6.00, GBP: 7.00, AUD: 3.60, CAD: 4.00 };
           }
-        } catch {
-          // Fallback rates
-          rates = { USD: 5.50, EUR: 6.00, GBP: 7.00, AUD: 3.60, CAD: 4.00 };
         }
-      }
 
-      // 4. Build account->currency map
-      const accountCurrency: Record<string, string> = {};
-      for (const a of activeAccounts) {
-        accountCurrency[a.id] = (a.currency || 'BRL').toUpperCase();
-      }
-
-      // 5. Get campaigns spend from active accounts
-      const { data: campaignData, error } = await supabase
-        .from('campaigns')
-        .select('spend, ad_account_id')
-        .eq('status', 'active')
-        .in('ad_account_id', activeAccounts.map(a => a.id));
-      if (error) throw error;
-
-      // 6. Sum spend converting to BRL
-      let totalBRL = 0;
-      for (const c of (campaignData || [])) {
-        const spend = c.spend || 0;
-        const currency = c.ad_account_id ? accountCurrency[c.ad_account_id] : 'BRL';
-        if (currency === 'BRL') {
-          totalBRL += spend;
-        } else {
-          const rate = rates[currency] || 1;
-          totalBRL += spend * rate;
+        const accountCurrency: Record<string, string> = {};
+        for (const a of activeAccounts) {
+          accountCurrency[a.id] = (a.currency || 'BRL').toUpperCase();
         }
+
+        const { data: campaignData, error } = await supabase
+          .from('campaigns')
+          .select('spend, ad_account_id')
+          .eq('status', 'active')
+          .in('ad_account_id', activeAccounts.map(a => a.id));
+        if (error) throw error;
+
+        let totalBRL = 0;
+        for (const c of (campaignData || [])) {
+          const spend = c.spend || 0;
+          const currency = c.ad_account_id ? accountCurrency[c.ad_account_id] : 'BRL';
+          if (currency === 'BRL') {
+            totalBRL += spend;
+          } else {
+            totalBRL += spend * (rates[currency] || 1);
+          }
+        }
+        return totalBRL;
+      } else {
+        // Historical: sum from daily_snapshots
+        const startDate = start.split('T')[0];
+        const endDate = end.split('T')[0];
+        const { data: snapshots, error } = await supabase
+          .from('daily_snapshots')
+          .select('ad_spend')
+          .gte('date', startDate)
+          .lte('date', endDate);
+        if (error) throw error;
+        return (snapshots || []).reduce((s, snap) => s + (snap.ad_spend || 0), 0);
       }
-      return totalBRL;
     },
-    refetchInterval: 60000,
+    refetchInterval: isToday ? 15000 : 60000,
   });
 
   const { data: pixPending } = useQuery({
