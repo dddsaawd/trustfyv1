@@ -207,7 +207,7 @@ const Trafego = () => {
       });
   }, [campaigns, nameFilter, statusFilter, activeAccountIds, sortColumn, sortDirection]);
 
-  // Aggregated totals
+  // Aggregated totals (based on ALL filtered, not paginated)
   const totals = useMemo(() => {
     const list = filteredCampaigns;
     const spend = list.reduce((s, c) => s + Number(c.spend || 0), 0);
@@ -220,11 +220,20 @@ const Trafego = () => {
     const cpa = conversions > 0 ? spend / conversions : 0;
     const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
     const roi = spend > 0 ? (profit / spend) * 100 : 0;
-    // Detect dominant currency
     const currencies = new Set(list.map(c => accountCurrencyMap[c.ad_account_id || ''] || 'BRL'));
     const totalsCurrency = currencies.size === 1 ? [...currencies][0] : 'BRL';
     return { spend, revenue, conversions, profit, roas, cpa, margin, roi, clicks, impressions, count: list.length, currency: totalsCurrency };
   }, [filteredCampaigns, accountCurrencyMap]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
+  const paginatedCampaigns = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCampaigns.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCampaigns, currentPage]);
+
+  // Reset page when filters change
+  useMemo(() => { setCurrentPage(1); }, [nameFilter, statusFilter, activePlatform]);
 
   // Map period to Meta date_preset
   const periodToDatePreset = (period: string): string => {
