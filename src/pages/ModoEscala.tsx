@@ -11,6 +11,8 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2,
 
 const ModoEscala = () => {
   const { user } = useAuth();
+  const lastCountRef = useRef<number | null>(null);
+  const [flash, setFlash] = useState(false);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders-escala', user?.id],
