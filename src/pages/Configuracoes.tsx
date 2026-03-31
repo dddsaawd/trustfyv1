@@ -204,16 +204,54 @@ const Configuracoes = () => {
                   <CreditCard className="h-4 w-4 text-primary" />
                   Gateway de Pagamento
                 </CardTitle>
-                <CardDescription className="text-[10px]">Taxas cobradas pelo processador de pagamento</CardDescription>
+                <CardDescription className="text-[10px]">Selecione seu gateway ou personalize as taxas</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Gateway</Label>
+                  <Select
+                    value={costs.gateway_provider}
+                    onValueChange={(v) => {
+                      const preset = GATEWAY_PRESETS[v];
+                      if (preset) {
+                        setCosts(prev => ({
+                          ...prev,
+                          gateway_provider: v,
+                          gateway_pix_percent: preset.pix,
+                          gateway_card_percent: preset.card,
+                          gateway_fee_fixed: preset.fixed,
+                          boleto_fee: preset.boleto,
+                          gateway_fee_percent: preset.card,
+                        }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(GATEWAY_PRESETS).map(([key, val]) => (
+                        <SelectItem key={key} value={key} className="text-xs">{val.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Separator />
                 <CostField
-                  label="Taxa Percentual"
-                  tooltip="Percentual cobrado por transação (ex: 4.99% no Pagar.me)"
+                  label="Taxa Pix"
+                  tooltip="Percentual cobrado em transações via Pix"
                   icon={Percent}
                   suffix="%"
-                  value={costs.gateway_fee_percent}
-                  onChange={(v) => updateCost('gateway_fee_percent', v)}
+                  value={costs.gateway_pix_percent}
+                  onChange={(v) => updateCost('gateway_pix_percent', v)}
+                />
+                <CostField
+                  label="Taxa Cartão"
+                  tooltip="Percentual cobrado em transações via cartão de crédito"
+                  icon={Percent}
+                  suffix="%"
+                  value={costs.gateway_card_percent}
+                  onChange={(v) => updateCost('gateway_card_percent', v)}
                 />
                 <CostField
                   label="Taxa Fixa por Transação"
