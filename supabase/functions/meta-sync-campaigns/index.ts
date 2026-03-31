@@ -125,82 +125,87 @@ Deno.serve(async (req) => {
         console.error(`Error checking payment status for ${actId}:`, e)
       }
 
-      // Fetch campaigns with insights using dynamic date preset
-      const campaignsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=id,name,status,daily_budget,insights.date_preset(${metaDatePreset}){spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}&limit=100&access_token=${accessToken}`
-      )
-      const campaignsData = await campaignsRes.json()
+      // Fetch ALL campaigns with pagination
+      let nextUrl: string | null = `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=id,name,status,daily_budget,insights.date_preset(${metaDatePreset}){spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}&limit=500&access_token=${accessToken}`
+      
+      while (nextUrl) {
+        const campaignsRes = await fetch(nextUrl)
+        const campaignsData = await campaignsRes.json()
 
-      if (campaignsData.error) {
-        console.error(`Error fetching campaigns for ${actId}:`, campaignsData.error)
-        continue
-      }
+        if (campaignsData.error) {
+          console.error(`Error fetching campaigns for ${actId}:`, campaignsData.error)
+          break
+        }
 
-      for (const campaign of (campaignsData.data || [])) {
-        const insights = campaign.insights?.data?.[0] || {}
-        const actions = insights.actions || []
-        const actionValues = insights.action_values || []
+        for (const campaign of (campaignsData.data || [])) {
+          const insights = campaign.insights?.data?.[0] || {}
+          const actions = insights.actions || []
+          const actionValues = insights.action_values || []
 
-        const conversions = actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value || 
-                           actions.find((a: any) => a.action_type === 'purchase')?.value || 0
-        const revenue = actionValues.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value ||
-                       actionValues.find((a: any) => a.action_type === 'purchase')?.value || 0
-        const initiateCheckout = parseInt(actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
-                                actions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
+          const conversions = actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value || 
+                             actions.find((a: any) => a.action_type === 'purchase')?.value || 0
+          const revenue = actionValues.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value ||
+                         actionValues.find((a: any) => a.action_type === 'purchase')?.value || 0
+          const initiateCheckout = parseInt(actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
+                                  actions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
 
-        const costPerActions = insights.cost_per_action_type || []
-        const costPerIc = parseFloat(costPerActions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
-                         costPerActions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
+          const costPerActions = insights.cost_per_action_type || []
+          const costPerIc = parseFloat(costPerActions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
+                           costPerActions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
 
-        const spend = parseFloat(insights.spend || '0')
-        const impressions = parseInt(insights.impressions || '0')
-        const clicks = parseInt(insights.clicks || '0')
-        const cpm = parseFloat(insights.cpm || '0')
-        const ctr = parseFloat(insights.ctr || '0')
-        const cpc = parseFloat(insights.cpc || '0')
-        const conv = parseInt(conversions)
-        const rev = parseFloat(revenue)
-        const roas = spend > 0 ? rev / spend : 0
-        const cpa = conv > 0 ? spend / conv : 0
-        const profit = rev - spend
+          const spend = parseFloat(insights.spend || '0')
+          const impressions = parseInt(insights.impressions || '0')
+          const clicks = parseInt(insights.clicks || '0')
+          const cpm = parseFloat(insights.cpm || '0')
+          const ctr = parseFloat(insights.ctr || '0')
+          const cpc = parseFloat(insights.cpc || '0')
+          const conv = parseInt(conversions)
+          const rev = parseFloat(revenue)
+          const roas = spend > 0 ? rev / spend : 0
+          const cpa = conv > 0 ? spend / conv : 0
+          const profit = rev - spend
 
-        // Determine score
-        let score: 'scale' | 'watch' | 'cut' = 'watch'
-        if (roas >= 2) score = 'scale'
-        else if (roas < 1 && spend > 50) score = 'cut'
+          // Determine score
+          let score: 'scale' | 'watch' | 'cut' = 'watch'
+          if (roas >= 2) score = 'scale'
+          else if (roas < 1 && spend > 50) score = 'cut'
 
-        // Map Meta status to our enum
-        let status: 'active' | 'paused' | 'ended' = 'paused'
-        if (campaign.status === 'ACTIVE') status = 'active'
-        else if (campaign.status === 'ARCHIVED' || campaign.status === 'DELETED') status = 'ended'
+          // Map Meta status to our enum
+          let status: 'active' | 'paused' | 'ended' = 'paused'
+          if (campaign.status === 'ACTIVE') status = 'active'
+          else if (campaign.status === 'ARCHIVED' || campaign.status === 'DELETED') status = 'ended'
 
-        // Upsert campaign with ad_account_id
-        const { error } = await supabase
-          .from('campaigns')
-          .upsert({
-            user_id: user_id,
-            name: campaign.name,
-            platform: 'meta',
-            ad_account_id: adAccountUuid,
-            status,
-            budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
-            spend,
-            impressions,
-            clicks,
-            cpm,
-            ctr,
-            cpc,
-            cpa,
-            conversions: conv,
-            revenue: rev,
-            profit,
-            roas,
-            score,
-            initiate_checkout: initiateCheckout,
-            cost_per_ic: costPerIc,
-          }, { onConflict: 'user_id,name,platform,ad_account_id' })
+          // Upsert campaign with ad_account_id
+          const { error } = await supabase
+            .from('campaigns')
+            .upsert({
+              user_id: user_id,
+              name: campaign.name,
+              platform: 'meta',
+              ad_account_id: adAccountUuid,
+              status,
+              budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
+              spend,
+              impressions,
+              clicks,
+              cpm,
+              ctr,
+              cpc,
+              cpa,
+              conversions: conv,
+              revenue: rev,
+              profit,
+              roas,
+              score,
+              initiate_checkout: initiateCheckout,
+              cost_per_ic: costPerIc,
+            }, { onConflict: 'user_id,name,platform,ad_account_id' })
 
-        if (!error) totalSynced++
+          if (!error) totalSynced++
+        }
+
+        // Follow pagination
+        nextUrl = campaignsData.paging?.next || null
       }
     }
 
