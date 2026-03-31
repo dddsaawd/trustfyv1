@@ -570,9 +570,13 @@ const Trafego = () => {
                   <Select defaultValue="today">
                     <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="max">Máximo (36 meses)</SelectItem>
                       <SelectItem value="today">Hoje</SelectItem>
+                      <SelectItem value="yesterday">Ontem</SelectItem>
                       <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                      <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                      <SelectItem value="this_month">Esse mês</SelectItem>
+                      <SelectItem value="last_month">Mês passado</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
