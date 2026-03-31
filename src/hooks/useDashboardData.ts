@@ -52,6 +52,18 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
       prevEnd = `${yBR}T23:59:59-03:00`;
       break;
     }
+    case 'yesterday': {
+      const yd = new Date(now);
+      yd.setDate(yd.getDate() - 1);
+      const ydBR = getBrazilDate(yd);
+      start = `${ydBR}T00:00:00-03:00`;
+      end = `${ydBR}T23:59:59-03:00`;
+      const dba = new Date(now);
+      dba.setDate(dba.getDate() - 2);
+      const dbaBR = getBrazilDate(dba);
+      prevStart = `${dbaBR}T00:00:00-03:00`;
+      prevEnd = `${dbaBR}T23:59:59-03:00`;
+      break;
     case '7d': {
       const d7 = new Date(now);
       d7.setDate(d7.getDate() - 6);
