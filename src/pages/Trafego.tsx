@@ -594,23 +594,46 @@ const Trafego = () => {
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
                           <TableHead className="text-[10px] w-8"><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.length === filteredCampaigns.length && filteredCampaigns.length > 0} onCheckedChange={toggleSelectAll} /></TableHead>
-                          <TableHead className="text-[10px] w-14">STATUS</TableHead>
-                          <TableHead className="text-[10px]">CAMPANHA</TableHead>
-                          <TableHead className="text-[10px] text-right">ORÇAMENTO</TableHead>
-                          <TableHead className="text-[10px] text-right">ÚLT. ATUALIZAÇÃO</TableHead>
-                          <TableHead className="text-[10px] text-right">VENDAS</TableHead>
-                          <TableHead className="text-[10px] text-right">CPA <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">GASTOS</TableHead>
-                          <TableHead className="text-[10px] text-right">FATURAMENTO</TableHead>
-                          <TableHead className="text-[10px] text-right">LUCRO <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">ROAS <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">MARGEM <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">ROI <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">CPC</TableHead>
-                          <TableHead className="text-[10px] text-right">CTR</TableHead>
-                          <TableHead className="text-[10px] text-right">CPM</TableHead>
-                          <TableHead className="text-[10px] text-right">IMPRESSÕES</TableHead>
-                          <TableHead className="text-[10px] text-right">CLIQUES</TableHead>
+                          {[
+                            { key: 'status', label: 'STATUS', align: 'left', w: 'w-14' },
+                            { key: 'name', label: 'CAMPANHA', align: 'left' },
+                            { key: 'budget_daily', label: 'ORÇAMENTO', align: 'right' },
+                            { key: 'updated_at', label: 'ÚLT. ATUALIZAÇÃO', align: 'right' },
+                            { key: 'conversions', label: 'VENDAS', align: 'right' },
+                            { key: 'cpa', label: 'CPA', align: 'right', info: true },
+                            { key: 'spend', label: 'GASTOS', align: 'right' },
+                            { key: 'revenue', label: 'FATURAMENTO', align: 'right' },
+                            { key: 'profit', label: 'LUCRO', align: 'right', info: true },
+                            { key: 'roas', label: 'ROAS', align: 'right', info: true },
+                            { key: 'margin', label: 'MARGEM', align: 'right', info: true },
+                            { key: 'roi', label: 'ROI', align: 'right', info: true },
+                            { key: 'cpc', label: 'CPC', align: 'right' },
+                            { key: 'ctr', label: 'CTR', align: 'right' },
+                            { key: 'cpm', label: 'CPM', align: 'right' },
+                            { key: 'impressions', label: 'IMPRESSÕES', align: 'right' },
+                            { key: 'clicks', label: 'CLIQUES', align: 'right' },
+                          ].map(col => (
+                            <TableHead
+                              key={col.key}
+                              className={cn(
+                                'text-[10px] cursor-pointer select-none hover:text-foreground transition-colors',
+                                col.align === 'right' && 'text-right',
+                                col.w,
+                                sortColumn === col.key && 'text-primary'
+                              )}
+                              onClick={() => toggleSort(col.key)}
+                            >
+                              <span className="inline-flex items-center gap-0.5">
+                                {col.label}
+                                {col.info && <Info className="h-3 w-3 text-muted-foreground/40" />}
+                                {sortColumn === col.key ? (
+                                  <ArrowUp className={cn('h-3 w-3 transition-transform', sortDirection === 'desc' && 'rotate-180')} />
+                                ) : (
+                                  <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />
+                                )}
+                              </span>
+                            </TableHead>
+                          ))}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
