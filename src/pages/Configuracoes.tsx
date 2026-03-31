@@ -48,6 +48,7 @@ const defaultCosts: CostSettings = {
   gateway_provider: 'custom',
   gateway_fee_percent: 4.99,
   gateway_fee_fixed: 0,
+  gateway_pix_fixed: 0,
   gateway_pix_percent: 0,
   gateway_card_percent: 4.99,
   avg_shipping: 12.00,
