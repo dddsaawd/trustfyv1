@@ -22,8 +22,10 @@ const EmptyState = ({ message }: { message: string }) => (
 
 const periodOptions: { value: DateRange; label: string }[] = [
   { value: 'today', label: 'Hoje' },
+  { value: 'yesterday', label: 'Ontem' },
   { value: '7d', label: '7 dias' },
   { value: '30d', label: '30 dias' },
+  { value: '365d', label: '365 dias' },
   { value: 'custom', label: 'Personalizado' },
 ];
 

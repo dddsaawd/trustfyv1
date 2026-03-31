@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { KPIData } from '@/types/database';
 
-export type DateRange = 'today' | '7d' | '30d' | 'custom';
+export type DateRange = 'today' | 'yesterday' | '7d' | '30d' | '365d' | 'custom';
 
 interface DashboardFilters {
   dateRange: DateRange;
@@ -52,6 +52,19 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
       prevEnd = `${yBR}T23:59:59-03:00`;
       break;
     }
+    case 'yesterday': {
+      const yd = new Date(now);
+      yd.setDate(yd.getDate() - 1);
+      const ydBR = getBrazilDate(yd);
+      start = `${ydBR}T00:00:00-03:00`;
+      end = `${ydBR}T23:59:59-03:00`;
+      const dba = new Date(now);
+      dba.setDate(dba.getDate() - 2);
+      const dbaBR = getBrazilDate(dba);
+      prevStart = `${dbaBR}T00:00:00-03:00`;
+      prevEnd = `${dbaBR}T23:59:59-03:00`;
+      break;
+    }
     case '7d': {
       const d7 = new Date(now);
       d7.setDate(d7.getDate() - 6);
@@ -78,6 +91,19 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
       prevEnd = `${getBrazilDate(pd30End)}T23:59:59-03:00`;
       break;
     }
+    case '365d': {
+      const d365 = new Date(now);
+      d365.setDate(d365.getDate() - 364);
+      start = `${getBrazilDate(d365)}T00:00:00-03:00`;
+      end = `${todayBR}T23:59:59-03:00`;
+      const p365End = new Date(d365);
+      p365End.setDate(p365End.getDate() - 1);
+      const p365Start = new Date(p365End);
+      p365Start.setDate(p365Start.getDate() - 364);
+      prevStart = `${getBrazilDate(p365Start)}T00:00:00-03:00`;
+      prevEnd = `${getBrazilDate(p365End)}T23:59:59-03:00`;
+      break;
+    }
     case 'custom': {
       const cs = filters.customStart || now;
       const ce = filters.customEnd || now;
@@ -102,8 +128,10 @@ function calcChange(current: number, previous: number): number {
 
 const changeLabelMap: Record<DateRange, string> = {
   today: 'vs ontem',
+  yesterday: 'vs anteontem',
   '7d': 'vs 7d anteriores',
   '30d': 'vs 30d anteriores',
+  '365d': 'vs 365d anteriores',
   custom: 'vs período anterior',
 };
 
