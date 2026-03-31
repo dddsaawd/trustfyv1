@@ -609,7 +609,7 @@ const Trafego = () => {
                             { key: 'status', label: 'STATUS', align: 'left', w: 'w-14' },
                             { key: 'name', label: 'CAMPANHA', align: 'left' },
                             { key: 'budget_daily', label: 'ORÇAMENTO', align: 'right' },
-                            { key: 'updated_at', label: 'ÚLT. ATUALIZAÇÃO', align: 'right' },
+                            
                             { key: 'conversions', label: 'VENDAS', align: 'right' },
                             { key: 'cpa', label: 'CPA', align: 'right', info: true },
                             { key: 'spend', label: 'GASTOS', align: 'right' },
@@ -695,9 +695,6 @@ const Trafego = () => {
                                     </span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-xs text-right tabular-nums text-muted-foreground">
-                                  {new Date(c.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                </TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{conv}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{conv > 0 ? fmt(cpa, cur) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{fmt(spend, cur)}</TableCell>
@@ -716,7 +713,7 @@ const Trafego = () => {
                           })
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={18} className="text-center py-6">
+                            <TableCell colSpan={17} className="text-center py-6">
                               <p className="text-xs text-muted-foreground">N/A</p>
                             </TableCell>
                           </TableRow>
@@ -727,7 +724,7 @@ const Trafego = () => {
                           <TableCell className="text-[10px] text-muted-foreground">N/A</TableCell>
                           <TableCell className="text-[10px]">{totals.count} CAMPANHAS</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{fmt(0)}</TableCell>
-                          <TableCell className="text-[10px] text-right text-muted-foreground">N/A</TableCell>
+                          
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.conversions}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.conversions > 0 ? fmt(totals.cpa) : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend)}</TableCell>
