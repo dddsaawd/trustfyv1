@@ -11,7 +11,7 @@ type MockDailySnapshot = { date: string; gross_revenue: number; net_revenue: num
 
 export const kpiData: KPIData[] = [
   { label: 'Faturamento Bruto', value: 'R$ 24.832,90', change: 12.4, changeLabel: 'vs ontem', tooltip: 'Total de vendas brutas do período selecionado', prefix: 'R$' },
-  { label: 'Faturamento Líquido', value: 'R$ 21.407,30', change: 8.7, changeLabel: 'vs ontem', tooltip: 'Vendas aprovadas menos reembolsos e chargebacks' },
+  { label: 'Vendas Aprovadas', value: 'R$ 21.407,30', change: 8.7, changeLabel: 'vs ontem', tooltip: 'Vendas aprovadas menos reembolsos e chargebacks' },
   { label: 'Gastos com Ads', value: 'R$ 4.218,50', change: -3.2, changeLabel: 'vs ontem', tooltip: 'Total investido em anúncios pagos' },
   { label: 'Lucro Líquido', value: 'R$ 8.943,20', change: 18.6, changeLabel: 'vs ontem', tooltip: 'Receita líquida menos todos os custos: ads, produto, frete, taxas, impostos' },
   { label: 'ROAS', value: '5.07x', change: 15.3, changeLabel: 'vs ontem', tooltip: 'Return on Ad Spend — Faturamento ÷ Gasto com Ads' },
