@@ -165,6 +165,39 @@ const Trafego = () => {
     setSyncing(false);
   };
 
+  const toggleCampaignStatus = useCallback(async (campaignId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ status: newStatus })
+      .eq('id', campaignId);
+    if (error) {
+      toast.error('Erro ao atualizar status');
+      return;
+    }
+    toast.success(`Campanha ${newStatus === 'active' ? 'ativada' : 'pausada'}`);
+    refetch();
+  }, [refetch]);
+
+  const saveBudget = useCallback(async (campaignId: string) => {
+    const value = parseFloat(budgetValue.replace(',', '.'));
+    if (isNaN(value) || value < 0) {
+      toast.error('Valor inválido');
+      return;
+    }
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ budget_daily: value })
+      .eq('id', campaignId);
+    if (error) {
+      toast.error('Erro ao salvar orçamento');
+      return;
+    }
+    toast.success('Orçamento atualizado');
+    setEditingBudget(null);
+    refetch();
+  }, [budgetValue, refetch]);
+
   const timeSinceUpdate = dataUpdatedAt
     ? `Atualizado ${Math.round((Date.now() - dataUpdatedAt) / 60000)} min atrás`
     : '';
