@@ -195,6 +195,8 @@ Deno.serve(async (req) => {
             profit,
             roas,
             score,
+            initiate_checkout: initiateCheckout,
+            cost_per_ic: costPerIc,
           }, { onConflict: 'user_id,name,platform,ad_account_id' })
 
         if (!error) totalSynced++
