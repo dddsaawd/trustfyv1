@@ -64,6 +64,7 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
       prevStart = `${dbaBR}T00:00:00-03:00`;
       prevEnd = `${dbaBR}T23:59:59-03:00`;
       break;
+    }
     case '7d': {
       const d7 = new Date(now);
       d7.setDate(d7.getDate() - 6);
