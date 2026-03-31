@@ -1,30 +1,88 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Search, Database, Inbox } from 'lucide-react';
+import { Search, Database, Inbox, CalendarIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+type DateRange = 'today' | '7d' | '30d' | 'all' | 'custom';
+
+function getBrazilDate(date: Date = new Date()): string {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+}
+
+function getDateBounds(range: DateRange, customFrom?: Date, customTo?: Date) {
+  const now = new Date();
+  const todayBR = getBrazilDate(now);
+
+  switch (range) {
+    case 'today':
+      return { start: `${todayBR}T00:00:00-03:00`, end: `${todayBR}T23:59:59-03:00` };
+    case '7d': {
+      const d = new Date(now); d.setDate(d.getDate() - 6);
+      return { start: `${getBrazilDate(d)}T00:00:00-03:00`, end: `${todayBR}T23:59:59-03:00` };
+    }
+    case '30d': {
+      const d = new Date(now); d.setDate(d.getDate() - 29);
+      return { start: `${getBrazilDate(d)}T00:00:00-03:00`, end: `${todayBR}T23:59:59-03:00` };
+    }
+    case 'custom': {
+      if (customFrom && customTo) {
+        return { start: `${getBrazilDate(customFrom)}T00:00:00-03:00`, end: `${getBrazilDate(customTo)}T23:59:59-03:00` };
+      }
+      return { start: `${todayBR}T00:00:00-03:00`, end: `${todayBR}T23:59:59-03:00` };
+    }
+    case 'all':
+    default:
+      return null;
+  }
+}
+
+const periodOptions: { value: DateRange; label: string }[] = [
+  { value: 'today', label: 'Hoje' },
+  { value: '7d', label: '7 dias' },
+  { value: '30d', label: '30 dias' },
+  { value: 'all', label: 'Tudo' },
+  { value: 'custom', label: 'Personalizado' },
+];
 
 const Vendas = () => {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange>('today');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+
+  const dateBounds = useMemo(() => getDateBounds(dateRange, customRange.from, customRange.to), [dateRange, customRange]);
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['orders', user?.id],
+    queryKey: ['orders', user?.id, dateBounds?.start, dateBounds?.end, dateRange],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
+        .order('created_at', { ascending: false });
+
+      if (dateBounds) {
+        query = query.gte('created_at', dateBounds.start).lte('created_at', dateBounds.end);
+      } else {
+        query = query.limit(500);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -58,12 +116,66 @@ const Vendas = () => {
     ];
   }, [hasRealData, orders]);
 
+  const handlePeriodChange = (range: DateRange) => {
+    if (range === 'custom') {
+      setShowDatePicker(true);
+      setDateRange('custom');
+      return;
+    }
+    setShowDatePicker(false);
+    setDateRange(range);
+  };
+
+  const handleCustomDateSelect = (range: { from?: Date; to?: Date } | undefined) => {
+    if (!range) return;
+    setCustomRange(range);
+  };
+
   return (
     <DashboardLayout title="Vendas">
-      <div className="flex items-center gap-1.5 mb-3">
+      {/* Period selector */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {periodOptions.map((opt) => (
+            <Button
+              key={opt.value}
+              variant={dateRange === opt.value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handlePeriodChange(opt.value)}
+              className="text-xs h-8"
+            >
+              {opt.value === 'custom' && <CalendarIcon className="h-3 w-3 mr-1" />}
+              {opt.label}
+            </Button>
+          ))}
+
+          {showDatePicker && (
+            <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  <CalendarIcon className="h-3 w-3 mr-1" />
+                  {customRange.from && customRange.to
+                    ? `${format(customRange.from, 'dd/MM')} - ${format(customRange.to, 'dd/MM')}`
+                    : 'Selecionar datas'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={customRange as any}
+                  onSelect={handleCustomDateSelect as any}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+
         {hasRealData && (
           <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/30">
-            <Database className="h-2.5 w-2.5" /> Dados Reais ({orders.length} pedidos)
+            <Database className="h-2.5 w-2.5" /> {orders.length} pedidos
           </Badge>
         )}
       </div>
@@ -116,6 +228,8 @@ const Vendas = () => {
                 <SelectItem value="approved">Aprovado</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="refused">Recusado</SelectItem>
+                <SelectItem value="refunded">Reembolsado</SelectItem>
+                <SelectItem value="chargeback">Chargeback</SelectItem>
               </SelectContent>
             </Select>
             <Select value={methodFilter} onValueChange={setMethodFilter}>
@@ -154,8 +268,8 @@ const Vendas = () => {
                   <TableBody>
                     {filtered.map((o: any, i: number) => (
                       <TableRow key={o.id || i} className="border-border">
-                        <TableCell className="text-xs font-mono text-muted-foreground">{o.order_number}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(o.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">{o.order_number?.slice(0, 8)}...</TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(o.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</TableCell>
                         <TableCell className="text-xs">{o.customer_name}</TableCell>
                         <TableCell className="text-xs max-w-[120px] truncate">{o.product_name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{o.platform || '-'}</TableCell>
@@ -170,7 +284,7 @@ const Vendas = () => {
                         <TableCell className="text-center">
                           <Badge variant={o.payment_status === 'approved' ? 'default' : o.payment_status === 'pending' ? 'secondary' : 'destructive'}
                             className={cn('text-[9px] px-1.5', o.payment_status === 'approved' && 'bg-success/20 text-success border-success/30 hover:bg-success/30')}>
-                            {o.payment_status === 'approved' ? 'Aprovado' : o.payment_status === 'pending' ? 'Pendente' : o.payment_status === 'refunded' ? 'Reembolsado' : 'Recusado'}
+                            {o.payment_status === 'approved' ? 'Aprovado' : o.payment_status === 'pending' ? 'Pendente' : o.payment_status === 'refused' ? 'Recusado' : o.payment_status === 'refunded' ? 'Reembolso' : 'Chargeback'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground capitalize">{o.payment_method === 'credit_card' ? 'Cartão' : o.payment_method}</TableCell>
