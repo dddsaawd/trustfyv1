@@ -224,6 +224,7 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
     gross_value: totalValue,
     payment_method: mapCorvexMethod(corvex.method),
     payment_status: mapCorvexStatus(corvex.status),
+    installments: corvex.installments || undefined,
     platform: 'corvex',
     utm_source: corvex.utm?.source || undefined,
     utm_campaign: corvex.utm?.campaign || undefined,
@@ -231,7 +232,7 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
     utm_term: corvex.utm?.term || undefined,
     state: corvex.address?.state || undefined,
     city: corvex.address?.city || undefined,
-    created_at: corvex.timestamp,
+    created_at: corvex.paidAt || corvex.timestamp,
   }
 
   return {
