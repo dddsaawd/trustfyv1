@@ -117,12 +117,12 @@ const Trafego = () => {
     if (!campaigns) return [];
     return campaigns.filter(c => {
       // If accounts are selected, only show campaigns from those accounts
-      if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(c.ad_account_id || '')) return false;
+      if (activeAccountIds.length > 0 && !activeAccountIds.includes(c.ad_account_id || '')) return false;
       if (nameFilter && !c.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       return true;
     });
-  }, [campaigns, nameFilter, statusFilter, selectedAccountIds]);
+  }, [campaigns, nameFilter, statusFilter, activeAccountIds]);
 
   // Aggregated totals
   const totals = useMemo(() => {
@@ -235,7 +235,7 @@ const Trafego = () => {
                         size="sm"
                         variant="outline"
                         className="h-7 text-[10px]"
-                        onClick={() => setSelectedAccountIds(adAccounts.map(a => a.id))}
+                        onClick={() => toggleAllAccountsPlaceholder(adAccounts.map(a => a.id))}
                       >
                         Selecionar Todas
                       </Button>
@@ -243,13 +243,13 @@ const Trafego = () => {
                         size="sm"
                         variant="ghost"
                         className="h-7 text-[10px]"
-                        onClick={() => setSelectedAccountIds([])}
+                        onClick={() => toggleAllAccountsPlaceholder([])}
                       >
                         Limpar
                       </Button>
-                      {selectedAccountIds.length > 0 && (
+                      {activeAccountIds.length > 0 && (
                         <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
-                          {selectedAccountIds.length} conta{selectedAccountIds.length > 1 ? 's' : ''} selecionada{selectedAccountIds.length > 1 ? 's' : ''}
+                          {activeAccountIds.length} conta{activeAccountIds.length > 1 ? 's' : ''} selecionada{activeAccountIds.length > 1 ? 's' : ''}
                         </Badge>
                       )}
                     </div>
@@ -258,7 +258,7 @@ const Trafego = () => {
                   {/* Account Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {adAccounts.map(acc => {
-                      const isSelected = selectedAccountIds.includes(acc.id);
+                      const isSelected = activeAccountIds.includes(acc.id);
                       return (
                         <Card
                           key={acc.id}
@@ -267,7 +267,7 @@ const Trafego = () => {
                             isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/20'
                           )}
                           onClick={() => {
-                            setSelectedAccountIds(prev =>
+                            toggleAllAccountsPlaceholder(prev =>
                               prev.includes(acc.id)
                                 ? prev.filter(id => id !== acc.id)
                                 : [...prev, acc.id]
@@ -299,9 +299,9 @@ const Trafego = () => {
                   </div>
 
                   {/* Selected Accounts Summary */}
-                  {selectedAccountIds.length > 0 && (() => {
+                  {activeAccountIds.length > 0 && (() => {
                     const selectedCampaigns = (campaigns || []).filter(c =>
-                      selectedAccountIds.includes(c.ad_account_id || '')
+                      activeAccountIds.includes(c.ad_account_id || '')
                     );
                     const totalSpend = selectedCampaigns.reduce((s, c) => s + Number(c.spend || 0), 0);
                     const totalRevenue = selectedCampaigns.reduce((s, c) => s + Number(c.revenue || 0), 0);
@@ -314,7 +314,7 @@ const Trafego = () => {
                       <Card className="border-primary/20 bg-primary/5">
                         <CardHeader className="pb-2 pt-3 px-4">
                           <CardTitle className="text-xs font-bold text-primary uppercase tracking-wide">
-                            Resumo das Contas Selecionadas ({selectedAccountIds.length})
+                            Resumo das Contas Selecionadas ({activeAccountIds.length})
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="px-4 pb-3">
