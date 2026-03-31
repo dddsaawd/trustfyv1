@@ -307,6 +307,23 @@ Deno.serve(async (req) => {
     
     const { event, data } = payload
 
+    // Anti-fraud check for order events
+    if (['order.created', 'order.paid', 'order.updated', 'pix.generated'].includes(event)) {
+      const customerName = (data as any).customer_name || ''
+      const fraudCheck = isSuspiciousName(customerName)
+      if (fraudCheck.suspicious) {
+        console.warn(`🚫 Pedido bloqueado por anti-fraude: ${fraudCheck.reason}`, { event, customerName })
+        return new Response(JSON.stringify({ 
+          success: false, 
+          blocked: true, 
+          reason: fraudCheck.reason 
+        }), {
+          status: 200, // Return 200 so webhook doesn't retry
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     let result: any = null
 
     switch (event) {
