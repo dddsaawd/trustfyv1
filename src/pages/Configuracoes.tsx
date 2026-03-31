@@ -327,6 +327,41 @@ const Configuracoes = () => {
                   value={costs.antecipation_fee_percent}
                   onChange={(v) => updateCost('antecipation_fee_percent', v)}
                 />
+                <Separator />
+                <Dialog open={showInstallments} onOpenChange={setShowInstallments}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 h-8">
+                      <Layers className="h-3.5 w-3.5" />
+                      Taxas no Cartão por Parcela
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">Taxas no cartão</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-3 gap-3 pt-2">
+                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                        <div key={n} className="bg-secondary rounded-lg p-3 text-center space-y-1.5">
+                          <p className="text-[10px] text-muted-foreground font-medium">{n}x</p>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={installmentRates[n] ?? 0}
+                              onChange={(e) => setInstallmentRates(prev => ({ ...prev, [n]: parseFloat(e.target.value) || 0 }))}
+                              className="h-7 text-xs text-center bg-background pr-6"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button size="sm" className="text-xs mt-2" onClick={saveInstallmentRates}>
+                      <Save className="h-3.5 w-3.5 mr-1" />
+                      Salvar Parcelas
+                    </Button>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 
