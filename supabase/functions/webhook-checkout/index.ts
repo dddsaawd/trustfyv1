@@ -380,7 +380,8 @@ Deno.serve(async (req) => {
             .from('orders')
             .update({
               payment_status: order.payment_status || 'pending',
-              payment_method: order.payment_method || 'pix',
+              payment_method: paymentMethod,
+              installments: installments,
               gross_value: grossValue,
               product_cost: productCost,
               gateway_fee: gatewayFee,
