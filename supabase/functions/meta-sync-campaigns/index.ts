@@ -144,6 +144,12 @@ Deno.serve(async (req) => {
                            actions.find((a: any) => a.action_type === 'purchase')?.value || 0
         const revenue = actionValues.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value ||
                        actionValues.find((a: any) => a.action_type === 'purchase')?.value || 0
+        const initiateCheckout = parseInt(actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
+                                actions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
+
+        const costPerActions = insights.cost_per_action_type || []
+        const costPerIc = parseFloat(costPerActions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
+                         costPerActions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
 
         const spend = parseFloat(insights.spend || '0')
         const impressions = parseInt(insights.impressions || '0')
