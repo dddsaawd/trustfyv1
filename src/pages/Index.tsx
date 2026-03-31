@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -30,7 +31,7 @@ const periodOptions: { value: DateRange; label: string }[] = [
 ];
 
 const Index = () => {
-  const [warMode, setWarMode] = useState(false);
+  const navigate = useNavigate();
   const { kpis, warModeKPIs, recentOrders, isLoading, hasRealData, filters, setFilters, totalOrders, totalApproved, totalPending, totalRefused } = useDashboardData();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
@@ -51,42 +52,6 @@ const Index = () => {
       setFilters({ dateRange: 'custom', customStart: range.from, customEnd: range.to });
     }
   };
-
-  if (warMode) {
-    return (
-      <DashboardLayout title="Modo Guerra">
-        <div className="flex flex-col items-center justify-center min-h-[80vh] gap-8 animate-fade-in">
-          <Button variant="outline" size="sm" onClick={() => setWarMode(false)} className="absolute top-20 right-6 border-destructive/30 text-destructive hover:bg-destructive/10">
-            <Swords className="h-3.5 w-3.5 mr-1.5" /> Sair do Modo Guerra
-          </Button>
-
-          <div className="flex items-center gap-2 mb-4">
-            <Swords className="h-6 w-6 text-destructive" />
-            <h2 className="text-lg font-bold text-destructive uppercase tracking-widest">Modo Guerra Ativo</h2>
-          </div>
-
-          {hasRealData ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl">
-              {warModeKPIs.map((kpi, i) => (
-                <div key={i} className="rounded-2xl border border-border bg-card p-8 text-center animate-scale-in" style={{ animationDelay: `${i * 100}ms` }}>
-                  <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">{kpi.label}</p>
-                  <p className="text-5xl lg:text-6xl font-black text-foreground tabular-nums tracking-tight">{kpi.value}</p>
-                  <div className="mt-3 flex items-center justify-center gap-1.5">
-                    {kpi.change >= 0 ? <TrendingUp className="h-4 w-4 text-success" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
-                    <span className={cn('text-sm font-bold tabular-nums', kpi.change >= 0 ? 'text-success' : 'text-destructive')}>
-                      {kpi.change >= 0 ? '+' : ''}{kpi.change}%
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState message="Nenhuma venda hoje. Os dados aparecerão aqui em tempo real." />
-          )}
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout title="Resumo">
@@ -137,7 +102,7 @@ const Index = () => {
               <span className="font-medium">Tempo real</span>
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={() => setWarMode(true)} className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs h-8">
+          <Button variant="outline" size="sm" onClick={() => navigate('/modo-guerra')} className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs h-8">
             <Swords className="h-3 w-3 mr-1" /> Modo Guerra
           </Button>
         </div>
