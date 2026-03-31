@@ -1,6 +1,15 @@
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { KPIData } from '@/types/database';
+
+export type DateRange = 'today' | '7d' | '30d' | 'custom';
+
+interface DashboardFilters {
+  dateRange: DateRange;
+  customStart?: Date;
+  customEnd?: Date;
+}
 
 interface DashboardData {
   kpis: KPIData[];
@@ -8,24 +17,128 @@ interface DashboardData {
   recentOrders: any[];
   isLoading: boolean;
   hasRealData: boolean;
+  filters: DashboardFilters;
+  setFilters: (f: DashboardFilters) => void;
+  totalOrders: number;
+  totalApproved: number;
+  totalPending: number;
+  totalRefused: number;
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+function getBrazilDate(date: Date = new Date()): string {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+}
+
+function getDateRange(filters: DashboardFilters): { start: string; end: string; prevStart: string; prevEnd: string } {
+  const now = new Date();
+  const todayBR = getBrazilDate(now);
+
+  let start: string;
+  let end: string;
+  let prevStart: string;
+  let prevEnd: string;
+
+  switch (filters.dateRange) {
+    case 'today': {
+      start = `${todayBR}T00:00:00-03:00`;
+      end = `${todayBR}T23:59:59-03:00`;
+      // Compare with yesterday
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yBR = getBrazilDate(yesterday);
+      prevStart = `${yBR}T00:00:00-03:00`;
+      prevEnd = `${yBR}T23:59:59-03:00`;
+      break;
+    }
+    case '7d': {
+      const d7 = new Date(now);
+      d7.setDate(d7.getDate() - 6);
+      start = `${getBrazilDate(d7)}T00:00:00-03:00`;
+      end = `${todayBR}T23:59:59-03:00`;
+      const pd7End = new Date(d7);
+      pd7End.setDate(pd7End.getDate() - 1);
+      const pd7Start = new Date(pd7End);
+      pd7Start.setDate(pd7Start.getDate() - 6);
+      prevStart = `${getBrazilDate(pd7Start)}T00:00:00-03:00`;
+      prevEnd = `${getBrazilDate(pd7End)}T23:59:59-03:00`;
+      break;
+    }
+    case '30d': {
+      const d30 = new Date(now);
+      d30.setDate(d30.getDate() - 29);
+      start = `${getBrazilDate(d30)}T00:00:00-03:00`;
+      end = `${todayBR}T23:59:59-03:00`;
+      const pd30End = new Date(d30);
+      pd30End.setDate(pd30End.getDate() - 1);
+      const pd30Start = new Date(pd30End);
+      pd30Start.setDate(pd30Start.getDate() - 29);
+      prevStart = `${getBrazilDate(pd30Start)}T00:00:00-03:00`;
+      prevEnd = `${getBrazilDate(pd30End)}T23:59:59-03:00`;
+      break;
+    }
+    case 'custom': {
+      const cs = filters.customStart || now;
+      const ce = filters.customEnd || now;
+      start = `${getBrazilDate(cs)}T00:00:00-03:00`;
+      end = `${getBrazilDate(ce)}T23:59:59-03:00`;
+      const diffMs = ce.getTime() - cs.getTime();
+      const pce = new Date(cs.getTime() - 86400000);
+      const pcs = new Date(pce.getTime() - diffMs);
+      prevStart = `${getBrazilDate(pcs)}T00:00:00-03:00`;
+      prevEnd = `${getBrazilDate(pce)}T23:59:59-03:00`;
+      break;
+    }
+  }
+
+  return { start, end, prevStart, prevEnd };
+}
+
+function calcChange(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Number((((current - previous) / previous) * 100).toFixed(1));
+}
+
+const changeLabelMap: Record<DateRange, string> = {
+  today: 'vs ontem',
+  '7d': 'vs 7d anteriores',
+  '30d': 'vs 30d anteriores',
+  custom: 'vs período anterior',
+};
+
 export function useDashboardData(): DashboardData {
+  const [filters, setFilters] = useState<DashboardFilters>({ dateRange: 'today' });
+  const { start, end, prevStart, prevEnd } = useMemo(() => getDateRange(filters), [filters]);
+  const changeLabel = changeLabelMap[filters.dateRange];
+
   const { data: orders, isLoading: loadingOrders } = useQuery({
-    queryKey: ['dashboard-orders'],
+    queryKey: ['dashboard-orders', start, end],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .gte('created_at', `${today}T00:00:00`)
+        .gte('created_at', start)
+        .lte('created_at', end)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
-    refetchInterval: 30000, // 30s realtime
+    refetchInterval: 30000,
+  });
+
+  const { data: prevOrders } = useQuery({
+    queryKey: ['dashboard-orders-prev', prevStart, prevEnd],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .gte('created_at', prevStart)
+        .lte('created_at', prevEnd);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 60000,
   });
 
   const { data: costSettings, isLoading: loadingCosts } = useQuery({
@@ -70,88 +183,89 @@ export function useDashboardData(): DashboardData {
   const isLoading = loadingOrders || loadingCosts || loadingCampaigns;
   const hasRealData = !!(orders && orders.length > 0);
 
+  const computeMetrics = (orderList: any[], cs: typeof costSettings) => {
+    const approved = orderList.filter(o => o.payment_status === 'approved');
+    const pending = orderList.filter(o => o.payment_status === 'pending');
+    const refused = orderList.filter(o => o.payment_status === 'refused');
+    const refunded = orderList.filter(o => o.payment_status === 'refunded');
+    const chargebacks = orderList.filter(o => o.payment_status === 'chargeback');
+
+    const grossRevenue = orderList.reduce((s, o) => s + (o.gross_value || 0), 0);
+    const netRevenue = approved.reduce((s, o) => s + (o.gross_value || 0), 0)
+      - refunded.reduce((s, o) => s + (o.gross_value || 0), 0)
+      - chargebacks.reduce((s, o) => s + (o.gross_value || 0), 0);
+
+    const totalProductCost = approved.reduce((s, o) => s + (o.product_cost || 0), 0);
+    const totalGatewayFee = approved.reduce((s, o) => {
+      if (o.gateway_fee && o.gateway_fee > 0) return s + o.gateway_fee;
+      if (cs) return s + ((o.gross_value * cs.gateway_fee_percent / 100) + cs.gateway_fee_fixed);
+      return s;
+    }, 0);
+    const totalShipping = approved.reduce((s, o) => {
+      if (o.shipping_cost && o.shipping_cost > 0) return s + o.shipping_cost;
+      return s + (cs?.avg_shipping ?? 0);
+    }, 0);
+    const totalTax = approved.reduce((s, o) => {
+      if (o.tax && o.tax > 0) return s + o.tax;
+      if (cs) return s + (o.gross_value * cs.tax_percent / 100);
+      return s;
+    }, 0);
+
+    const totalAdSpend = campaigns?.reduce((s, c) => s + (c.spend || 0), 0) ?? 0;
+    const netProfit = netRevenue - totalProductCost - totalGatewayFee - totalShipping - totalTax - totalAdSpend;
+    const roas = totalAdSpend > 0 ? grossRevenue / totalAdSpend : 0;
+    const totalCost = totalProductCost + totalGatewayFee + totalShipping + totalTax + totalAdSpend;
+    const roi = totalCost > 0 ? (netProfit / totalCost) * 100 : 0;
+    const margin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+    const avgTicket = approved.length > 0 ? netRevenue / approved.length : 0;
+    const approvalRate = orderList.length > 0 ? (approved.length / orderList.length) * 100 : 0;
+
+    return {
+      grossRevenue, netRevenue, totalAdSpend, netProfit, roas, roi, margin, avgTicket,
+      approvedCount: approved.length, approvalRate,
+      pendingCount: pending.length, refusedCount: refused.length,
+      totalCount: orderList.length,
+    };
+  };
+
   if (!hasRealData || !orders) {
     return {
-      kpis: [],
-      warModeKPIs: [],
-      recentOrders: [],
-      isLoading,
-      hasRealData: false,
+      kpis: [], warModeKPIs: [], recentOrders: [],
+      isLoading, hasRealData: false, filters, setFilters,
+      totalOrders: 0, totalApproved: 0, totalPending: 0, totalRefused: 0,
     };
   }
 
-  // Calculate KPIs from real orders
-  const approved = orders.filter(o => o.payment_status === 'approved');
-  const pending = orders.filter(o => o.payment_status === 'pending');
-  const refused = orders.filter(o => o.payment_status === 'refused');
-  const refunded = orders.filter(o => o.payment_status === 'refunded');
-  const chargebacks = orders.filter(o => o.payment_status === 'chargeback');
-
-  const grossRevenue = orders.reduce((s, o) => s + (o.gross_value || 0), 0);
-  const netRevenue = approved.reduce((s, o) => s + (o.gross_value || 0), 0)
-    - refunded.reduce((s, o) => s + (o.gross_value || 0), 0)
-    - chargebacks.reduce((s, o) => s + (o.gross_value || 0), 0);
-
-  const totalAdSpend = campaigns?.reduce((s, c) => s + (c.spend || 0), 0) ?? 0;
-
-  const cs = costSettings;
-
-  // Apply cost_settings for precise profit calculation
-  const totalProductCost = approved.reduce((s, o) => s + (o.product_cost || 0), 0);
-  const totalGatewayFee = approved.reduce((s, o) => {
-    if (o.gateway_fee && o.gateway_fee > 0) return s + o.gateway_fee;
-    // Fallback to cost_settings
-    if (cs) {
-      return s + ((o.gross_value * cs.gateway_fee_percent / 100) + cs.gateway_fee_fixed);
-    }
-    return s;
-  }, 0);
-  const totalShipping = approved.reduce((s, o) => {
-    if (o.shipping_cost && o.shipping_cost > 0) return s + o.shipping_cost;
-    return s + (cs?.avg_shipping ?? 0);
-  }, 0);
-  const totalTax = approved.reduce((s, o) => {
-    if (o.tax && o.tax > 0) return s + o.tax;
-    if (cs) return s + (o.gross_value * cs.tax_percent / 100);
-    return s;
-  }, 0);
-
-  const netProfit = netRevenue - totalProductCost - totalGatewayFee - totalShipping - totalTax - totalAdSpend;
-
-  const roas = totalAdSpend > 0 ? grossRevenue / totalAdSpend : 0;
-  const totalCost = totalProductCost + totalGatewayFee + totalShipping + totalTax + totalAdSpend;
-  const roi = totalCost > 0 ? (netProfit / totalCost) * 100 : 0;
-  const margin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
-  const avgTicket = approved.length > 0 ? netRevenue / approved.length : 0;
-  const approvalRate = orders.length > 0 ? (approved.length / orders.length) * 100 : 0;
+  const m = computeMetrics(orders, costSettings);
+  const pm = prevOrders ? computeMetrics(prevOrders, costSettings) : null;
 
   const pixPendingTotal = pixPending?.reduce((s, p) => s + (p.value || 0), 0) ?? 0;
 
   const kpis: KPIData[] = [
-    { label: 'Faturamento Bruto', value: `R$ ${fmt(grossRevenue)}`, change: 0, changeLabel: 'hoje', tooltip: 'Total de vendas brutas do dia' },
-    { label: 'Faturamento Líquido', value: `R$ ${fmt(netRevenue)}`, change: 0, changeLabel: 'hoje', tooltip: 'Aprovadas menos reembolsos e chargebacks' },
-    { label: 'Gastos com Ads', value: `R$ ${fmt(totalAdSpend)}`, change: 0, changeLabel: 'hoje', tooltip: 'Total investido em anúncios' },
-    { label: 'Lucro Líquido', value: `R$ ${fmt(netProfit)}`, change: 0, changeLabel: 'hoje', tooltip: 'Receita líquida menos todos os custos (ads, produto, frete, taxas, impostos)' },
-    { label: 'ROAS', value: `${roas.toFixed(2)}x`, change: 0, changeLabel: 'hoje', tooltip: 'Faturamento ÷ Gasto com Ads' },
-    { label: 'ROI Real', value: `${roi.toFixed(1)}%`, change: 0, changeLabel: 'hoje', tooltip: 'Lucro Líquido ÷ Custo Total × 100' },
-    { label: 'Margem Líquida', value: `${margin.toFixed(1)}%`, change: 0, changeLabel: 'hoje', tooltip: 'Lucro Líquido ÷ Faturamento Líquido × 100' },
-    { label: 'Ticket Médio', value: `R$ ${fmt(avgTicket)}`, change: 0, changeLabel: 'hoje', tooltip: 'Valor médio por venda aprovada' },
-    { label: 'Vendas Aprovadas', value: `${approved.length}`, change: 0, changeLabel: 'hoje', tooltip: 'Quantidade de vendas aprovadas' },
-    { label: 'Taxa Aprovação', value: `${approvalRate.toFixed(1)}%`, change: 0, changeLabel: 'hoje', tooltip: 'Aprovadas ÷ Total de pedidos' },
+    { label: 'Faturamento Bruto', value: `R$ ${fmt(m.grossRevenue)}`, change: pm ? calcChange(m.grossRevenue, pm.grossRevenue) : 0, changeLabel, tooltip: 'Total de vendas brutas no período' },
+    { label: 'Faturamento Líquido', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
+    { label: 'Gastos com Ads', value: `R$ ${fmt(m.totalAdSpend)}`, change: pm ? calcChange(m.totalAdSpend, pm.totalAdSpend) : 0, changeLabel, tooltip: 'Total investido em anúncios' },
+    { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0, changeLabel, tooltip: 'Receita líquida menos todos os custos' },
+    { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0, changeLabel, tooltip: 'Faturamento ÷ Gasto com Ads' },
+    { label: 'ROI Real', value: `${m.roi.toFixed(1)}%`, change: pm ? calcChange(m.roi, pm.roi) : 0, changeLabel, tooltip: 'Lucro Líquido ÷ Custo Total × 100' },
+    { label: 'Margem Líquida', value: `${m.margin.toFixed(1)}%`, change: pm ? calcChange(m.margin, pm.margin) : 0, changeLabel, tooltip: 'Lucro Líquido ÷ Faturamento Líquido × 100' },
+    { label: 'Ticket Médio', value: `R$ ${fmt(m.avgTicket)}`, change: pm ? calcChange(m.avgTicket, pm.avgTicket) : 0, changeLabel, tooltip: 'Valor médio por venda aprovada' },
+    { label: 'Vendas Aprovadas', value: `${m.approvedCount}`, change: pm ? calcChange(m.approvedCount, pm.approvedCount) : 0, changeLabel, tooltip: 'Quantidade de vendas aprovadas' },
+    { label: 'Taxa Aprovação', value: `${m.approvalRate.toFixed(1)}%`, change: pm ? calcChange(m.approvalRate, pm.approvalRate) : 0, changeLabel, tooltip: 'Aprovadas ÷ Total de pedidos' },
   ];
 
   const warModeKPIs = [
-    { label: 'Lucro Líquido', value: `R$ ${fmt(netProfit)}`, change: 0 },
-    { label: 'Vendas', value: `${approved.length}`, change: 0 },
-    { label: 'ROAS', value: `${roas.toFixed(2)}x`, change: 0 },
+    { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0 },
+    { label: 'Vendas', value: `${m.approvedCount}`, change: pm ? calcChange(m.approvedCount, pm.approvedCount) : 0 },
+    { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0 },
     { label: 'Pix Pendente', value: `R$ ${fmt(pixPendingTotal)}`, change: 0 },
   ];
 
   return {
-    kpis,
-    warModeKPIs,
+    kpis, warModeKPIs,
     recentOrders: orders.slice(0, 10),
-    isLoading,
-    hasRealData: true,
+    isLoading, hasRealData: true, filters, setFilters,
+    totalOrders: m.totalCount, totalApproved: m.approvedCount,
+    totalPending: m.pendingCount, totalRefused: m.refusedCount,
   };
 }
