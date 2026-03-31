@@ -19,8 +19,12 @@ import { toast } from 'sonner';
 import {
   Globe, Search, Music, Video, RefreshCw, Loader2, Inbox,
   CheckCircle, Settings, TrendingUp, TrendingDown, ChevronDown,
-  LayoutGrid, Layers, FileText, MonitorPlay, HelpCircle, Info
+  LayoutGrid, Layers, FileText, MonitorPlay, HelpCircle, Info,
+  BarChart3, ArrowUp, ExternalLink, Copy, Pin, Filter, Trash2,
+  Play, Pause, DollarSign, Target, MoreVertical
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const PLATFORMS = [
   { id: 'meta', label: 'Meta', icon: Globe, color: 'bg-blue-600' },
