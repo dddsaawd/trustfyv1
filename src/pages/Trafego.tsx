@@ -45,6 +45,9 @@ const Trafego = () => {
   const [syncing, setSyncing] = useState(false);
   const [editingBudget, setEditingBudget] = useState<string | null>(null);
   const [budgetValue, setBudgetValue] = useState('');
+  const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
+  const [bulkBudgetOpen, setBulkBudgetOpen] = useState(false);
+  const [bulkBudgetValue, setBulkBudgetValue] = useState('');
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
