@@ -559,7 +559,7 @@ const Trafego = () => {
                             const roi = spend > 0 ? (pft / spend) * 100 : 0;
                             return (
                               <TableRow key={c.id} className="border-border">
-                                <TableCell><Checkbox className="h-3.5 w-3.5" /></TableCell>
+                                <TableCell><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.includes(c.id)} onCheckedChange={() => toggleSelectCampaign(c.id)} /></TableCell>
                                 <TableCell>
                                   <Switch
                                     checked={c.status === 'active'}
