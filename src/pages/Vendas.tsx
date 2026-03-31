@@ -263,6 +263,7 @@ const Vendas = () => {
                       <TableHead className="text-[11px] text-right">Lucro Líq.</TableHead>
                       <TableHead className="text-[11px] text-center">Status</TableHead>
                       <TableHead className="text-[11px]">Método</TableHead>
+                      <TableHead className="text-[11px] text-center">Parcelas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -287,11 +288,16 @@ const Vendas = () => {
                             {o.payment_status === 'approved' ? 'Aprovado' : o.payment_status === 'pending' ? 'Pendente' : o.payment_status === 'refused' ? 'Recusado' : o.payment_status === 'refunded' ? 'Reembolso' : 'Chargeback'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground capitalize">{o.payment_method === 'credit_card' ? 'Cartão' : o.payment_method}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {o.payment_method === 'credit_card' ? '💳 Cartão' : o.payment_method === 'pix' ? '⚡ Pix' : o.payment_method === 'boleto' ? '📄 Boleto' : o.payment_method}
+                        </TableCell>
+                        <TableCell className="text-xs text-center text-muted-foreground">
+                          {o.payment_method === 'credit_card' ? `${o.installments || 1}x` : '—'}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={13} className="text-center text-xs text-muted-foreground py-8">Nenhum pedido encontrado</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-xs text-muted-foreground py-8">Nenhum pedido encontrado</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
