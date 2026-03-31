@@ -55,6 +55,8 @@ const Trafego = () => {
   const [sortColumn, setSortColumn] = useState<string>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [datePeriod, setDatePeriod] = useState('today');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 200;
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
