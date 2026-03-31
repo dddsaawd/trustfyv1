@@ -21,7 +21,7 @@ import {
   CheckCircle, Settings, TrendingUp, TrendingDown, ChevronDown,
   LayoutGrid, Layers, FileText, MonitorPlay, HelpCircle, Info,
   BarChart3, ArrowUp, ArrowUpDown, ExternalLink, Copy, Pin, Filter, Trash2,
-  Play, Pause, DollarSign, Target, MoreVertical, ArrowDownUp
+  Play, Pause, DollarSign, Target, MoreVertical, ArrowDownUp, Pencil
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
