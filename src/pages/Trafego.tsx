@@ -205,6 +205,71 @@ const Trafego = () => {
     refetch();
   }, [budgetValue, refetch]);
 
+  const toggleSelectCampaign = useCallback((id: string) => {
+    setSelectedCampaigns(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedCampaigns.length === filteredCampaigns.length) {
+      setSelectedCampaigns([]);
+    } else {
+      setSelectedCampaigns(filteredCampaigns.map(c => c.id));
+    }
+  }, [selectedCampaigns, filteredCampaigns]);
+
+  const bulkActivate = useCallback(async () => {
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').update({ status: 'active' }).eq('id', id);
+    }
+    toast.success(`${selectedCampaigns.length} campanhas ativadas`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, refetch]);
+
+  const bulkPause = useCallback(async () => {
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
+    }
+    toast.success(`${selectedCampaigns.length} campanhas pausadas`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, refetch]);
+
+  const bulkUpdateBudget = useCallback(async () => {
+    const value = parseFloat(bulkBudgetValue.replace(',', '.'));
+    if (isNaN(value) || value < 0) { toast.error('Valor inválido'); return; }
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').update({ budget_daily: value }).eq('id', id);
+    }
+    toast.success(`Orçamento atualizado para ${selectedCampaigns.length} campanhas`);
+    setBulkBudgetOpen(false);
+    setBulkBudgetValue('');
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, bulkBudgetValue, refetch]);
+
+  const bulkDelete = useCallback(async () => {
+    if (!confirm(`Excluir ${selectedCampaigns.length} campanhas?`)) return;
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').delete().eq('id', id);
+    }
+    toast.success(`${selectedCampaigns.length} campanhas excluídas`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, refetch]);
+
+  const copySelectedIds = useCallback(() => {
+    const ids = selectedCampaigns.join(', ');
+    navigator.clipboard.writeText(ids);
+    toast.success('IDs copiados para a área de transferência');
+  }, [selectedCampaigns]);
+
+  const filterSelected = useCallback(() => {
+    const names = filteredCampaigns.filter(c => selectedCampaigns.includes(c.id)).map(c => c.name);
+    if (names.length > 0) setNameFilter(names[0]);
+    toast.info('Filtro aplicado');
+  }, [selectedCampaigns, filteredCampaigns]);
+
   const timeSinceUpdate = dataUpdatedAt
     ? `Atualizado ${Math.round((Date.now() - dataUpdatedAt) / 60000)} min atrás`
     : '';
