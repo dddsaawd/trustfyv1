@@ -90,6 +90,8 @@ interface CorvexPayload {
     content?: string
     campaign?: string
   }
+  installments?: number
+  paidAt?: string
 }
 
 // Anti-fraud: blocked name patterns
