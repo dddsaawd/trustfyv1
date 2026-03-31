@@ -113,8 +113,11 @@ const Configuracoes = () => {
 
     if (data) {
       setCosts({
+        gateway_provider: (data as any).gateway_provider || 'custom',
         gateway_fee_percent: Number(data.gateway_fee_percent),
         gateway_fee_fixed: Number(data.gateway_fee_fixed),
+        gateway_pix_percent: Number((data as any).gateway_pix_percent ?? 0),
+        gateway_card_percent: Number((data as any).gateway_card_percent ?? 4.99),
         avg_shipping: Number(data.avg_shipping),
         tax_percent: Number(data.tax_percent),
         monthly_fixed_expenses: Number(data.monthly_fixed_expenses),
