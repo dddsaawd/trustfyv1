@@ -658,7 +658,7 @@ const Trafego = () => {
                                   />
                                 </TableCell>
                                 <TableCell className="text-xs font-medium max-w-[200px] truncate">{c.name}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">
+                                <TableCell className="text-xs text-right tabular-nums group/budget">
                                   {editingBudget === c.id ? (
                                     <Input
                                       autoFocus
@@ -666,15 +666,20 @@ const Trafego = () => {
                                       onChange={e => setBudgetValue(e.target.value)}
                                       onBlur={() => saveBudget(c.id)}
                                       onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.id); if (e.key === 'Escape') setEditingBudget(null); }}
-                                      className="h-6 w-24 text-xs text-right ml-auto"
+                                      className="h-7 w-28 text-xs text-right ml-auto"
                                     />
                                   ) : (
-                                    <span
-                                      className="cursor-pointer hover:text-primary transition-colors"
-                                      onClick={() => { setEditingBudget(c.id); setBudgetValue(String(Number(c.budget_daily || 0).toFixed(2))); }}
-                                    >
-                                      {fmt(Number(c.budget_daily || 0))}
-                                      <span className="text-[9px] text-muted-foreground block">Diário</span>
+                                    <span className="inline-flex items-center gap-1.5 justify-end">
+                                      <button
+                                        onClick={() => { setEditingBudget(c.id); setBudgetValue(String(Number(c.budget_daily || 0).toFixed(2))); }}
+                                        className="opacity-0 group-hover/budget:opacity-100 transition-opacity p-0.5 rounded hover:bg-primary/10"
+                                      >
+                                        <Settings className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                                      </button>
+                                      <span>
+                                        {fmt(Number(c.budget_daily || 0))}
+                                        <span className="text-[9px] text-muted-foreground block">Diário</span>
+                                      </span>
                                     </span>
                                   )}
                                 </TableCell>
