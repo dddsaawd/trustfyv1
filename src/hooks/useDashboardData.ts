@@ -126,8 +126,10 @@ function calcChange(current: number, previous: number): number {
 
 const changeLabelMap: Record<DateRange, string> = {
   today: 'vs ontem',
+  yesterday: 'vs anteontem',
   '7d': 'vs 7d anteriores',
   '30d': 'vs 30d anteriores',
+  '365d': 'vs 365d anteriores',
   custom: 'vs período anterior',
 };
 
