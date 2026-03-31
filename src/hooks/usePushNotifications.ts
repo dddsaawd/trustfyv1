@@ -24,6 +24,14 @@ export function usePushNotifications(userId?: string) {
     const unsubscribe = onMessage(messaging, (payload) => {
       const title = payload.notification?.title || 'TRUSTFY';
       const body = payload.notification?.body || '';
+      
+      // Play sale notification sound
+      try {
+        const audio = new Audio('/sounds/sale-notification.mp3');
+        audio.volume = 0.7;
+        audio.play().catch(() => {});
+      } catch (e) {}
+      
       toast.success(`${title}: ${body}`);
     });
 
