@@ -163,10 +163,12 @@ function mapCorvexStatus(status: string): 'approved' | 'pending' | 'refused' | '
 function mapCorvexMethod(method: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
   const map: Record<string, 'pix' | 'credit_card' | 'boleto' | 'debit'> = {
     'pix': 'pix',
+    'card': 'credit_card',
     'credit_card': 'credit_card',
     'credit': 'credit_card',
     'boleto': 'boleto',
     'debit': 'debit',
+    'debit_card': 'debit',
   }
   return map[method] || 'pix'
 }
