@@ -297,7 +297,7 @@ const Vendas = () => {
                       </TableRow>
                     ))}
                     {filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={13} className="text-center text-xs text-muted-foreground py-8">Nenhum pedido encontrado</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-xs text-muted-foreground py-8">Nenhum pedido encontrado</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
