@@ -318,6 +318,7 @@ export function useDashboardData(): DashboardData {
     const syncKey = `${user.id}:${filters.dateRange}:${start}:${end}`;
     if (lastSyncKeyRef.current === syncKey) return;
     lastSyncKeyRef.current = syncKey;
+    setAdsSyncReady(false);
 
     const controller = new AbortController();
 
@@ -331,11 +332,15 @@ export function useDashboardData(): DashboardData {
         });
 
         if (response.ok) {
-          await refetchCampaignSpend();
+          setAdsSyncReady(true);
+        } else {
+          // Even on error, allow reading whatever is in the DB
+          setAdsSyncReady(true);
         }
       } catch (error) {
         if ((error as DOMException).name !== 'AbortError') {
           console.error('Erro ao sincronizar gasto com ads do resumo:', error);
+          setAdsSyncReady(true);
         }
       }
     };
@@ -343,7 +348,7 @@ export function useDashboardData(): DashboardData {
     void syncCampaignsForSelectedPeriod();
 
     return () => controller.abort();
-  }, [user?.id, filters, start, end, refetchCampaignSpend]);
+  }, [user?.id, filters, start, end]);
 
   const isLoading = loadingOrders || loadingCosts || loadingCampaigns;
   const hasRealData = !!(orders && orders.length > 0);
