@@ -713,7 +713,7 @@ const Trafego = () => {
                           })
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={18} className="text-center py-6">
+                            <TableCell colSpan={17} className="text-center py-6">
                               <p className="text-xs text-muted-foreground">N/A</p>
                             </TableCell>
                           </TableRow>
