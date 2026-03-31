@@ -424,17 +424,33 @@ const Trafego = () => {
                               <TableRow key={c.id} className="border-border">
                                 <TableCell><Checkbox className="h-3.5 w-3.5" /></TableCell>
                                 <TableCell>
-                                  <Badge variant={c.status === 'active' ? 'default' : 'secondary'}
-                                    className={cn('text-[9px]',
-                                      c.status === 'active' && 'bg-success/20 text-success border-success/30',
-                                      c.status === 'paused' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                                      c.status === 'ended' && 'bg-muted text-muted-foreground'
-                                    )}>
-                                    {c.status === 'active' ? 'Ativa' : c.status === 'paused' ? 'Pausada' : 'Encerrada'}
-                                  </Badge>
+                                  <Switch
+                                    checked={c.status === 'active'}
+                                    onCheckedChange={() => toggleCampaignStatus(c.id, c.status)}
+                                    className="scale-90"
+                                  />
                                 </TableCell>
                                 <TableCell className="text-xs font-medium max-w-[200px] truncate">{c.name}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.budget_daily || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">
+                                  {editingBudget === c.id ? (
+                                    <Input
+                                      autoFocus
+                                      value={budgetValue}
+                                      onChange={e => setBudgetValue(e.target.value)}
+                                      onBlur={() => saveBudget(c.id)}
+                                      onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.id); if (e.key === 'Escape') setEditingBudget(null); }}
+                                      className="h-6 w-24 text-xs text-right ml-auto"
+                                    />
+                                  ) : (
+                                    <span
+                                      className="cursor-pointer hover:text-primary transition-colors"
+                                      onClick={() => { setEditingBudget(c.id); setBudgetValue(String(Number(c.budget_daily || 0).toFixed(2))); }}
+                                    >
+                                      {fmt(Number(c.budget_daily || 0))}
+                                      <span className="text-[9px] text-muted-foreground block">Diário</span>
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-xs text-right tabular-nums text-muted-foreground">
                                   {new Date(c.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </TableCell>
