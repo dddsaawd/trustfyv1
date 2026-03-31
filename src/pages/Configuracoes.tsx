@@ -97,11 +97,17 @@ const Configuracoes = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
+  const [installmentRates, setInstallmentRates] = useState<Record<number, number>>({
+    2: 11.89, 3: 13.29, 4: 14.74, 5: 15.97, 6: 16.65,
+    7: 16.99, 8: 17.01, 9: 17.99, 10: 18.01, 11: 18.99, 12: 23.99,
+  });
+  const [showInstallments, setShowInstallments] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchCosts();
       fetchProducts();
+      fetchInstallmentRates();
     }
   }, [user]);
 
