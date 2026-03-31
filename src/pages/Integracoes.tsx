@@ -174,15 +174,57 @@ const Integracoes = () => {
 
   const handleConnectMeta = () => {
     if (!user) return;
-    const callbackUrl = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
-    const redirectOrigin = window.location.origin.includes('lovable.app') 
-      ? window.location.origin 
-      : 'https://trustfyv1.lovable.app';
-    const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: redirectOrigin }));
-    const appId = '1254565673413567';
-    const scopes = 'ads_read,ads_management,business_management,pages_read_engagement,pages_show_list';
-    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scopes}&response_type=code`;
-    window.location.href = oauthUrl;
+    
+    const FB = (window as any).FB;
+    if (!FB) {
+      // Fallback to redirect method if SDK not loaded
+      const callbackUrl = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
+      const redirectOrigin = window.location.origin.includes('lovable.app') 
+        ? window.location.origin 
+        : 'https://trustfyv1.lovable.app';
+      const state = btoa(JSON.stringify({ user_id: user.id, redirect_url: redirectOrigin }));
+      const appId = '1254565673413567';
+      const scopes = 'ads_read,ads_management,business_management,pages_read_engagement,pages_show_list';
+      const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scopes}&response_type=code`;
+      window.location.href = oauthUrl;
+      return;
+    }
+
+    FB.login(async (response: any) => {
+      if (response.status === 'connected' && response.authResponse) {
+        const { accessToken, userID } = response.authResponse;
+        toast.info('Conectando ao Meta Ads...');
+
+        // Get user name from FB
+        FB.api('/me', { fields: 'name' }, async (meData: any) => {
+          try {
+            const res = await fetch(`${supabaseUrl}/functions/v1/meta-sdk-token`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user.id,
+                access_token: accessToken,
+                fb_user_id: userID,
+                user_name: meData?.name || 'Usuário Facebook',
+              }),
+            });
+            const json = await res.json();
+            if (res.ok && json.success) {
+              toast.success(`Meta Ads conectado! ${json.ad_accounts_count} contas encontradas.`);
+              fetchIntegrations();
+            } else {
+              toast.error(json.error || 'Erro ao conectar Meta Ads');
+            }
+          } catch (e: any) {
+            toast.error('Erro de rede ao conectar Meta Ads');
+          }
+        });
+      } else if (response.status === 'not_authorized') {
+        toast.error('Você precisa autorizar o app para continuar');
+      } else {
+        toast.error('Login com Facebook cancelado');
+      }
+    }, { scope: 'ads_read,ads_management,business_management,pages_read_engagement,pages_show_list' });
   };
 
   const handleSyncMeta = async () => {
