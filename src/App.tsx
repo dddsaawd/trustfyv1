@@ -20,6 +20,7 @@ import Relatorios from "./pages/Relatorios";
 import Integracoes from "./pages/Integracoes";
 import Configuracoes from "./pages/Configuracoes";
 import ModoEscala from "./pages/ModoEscala";
+import ModoGuerra from "./pages/ModoGuerra";
 import Instalar from "./pages/Instalar";
 import NotFound from "./pages/NotFound";
 
