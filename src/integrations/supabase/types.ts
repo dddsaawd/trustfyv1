@@ -336,6 +336,33 @@ export type Database = {
         }
         Relationships: []
       }
+      installment_rates: {
+        Row: {
+          created_at: string
+          id: string
+          installments: number
+          rate_percent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          installments: number
+          rate_percent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          installments?: number
+          rate_percent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json | null
@@ -423,6 +450,7 @@ export type Database = {
           gateway_fee: number | null
           gross_value: number
           id: string
+          installments: number | null
           net_profit: number | null
           order_number: string
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -452,6 +480,7 @@ export type Database = {
           gateway_fee?: number | null
           gross_value?: number
           id?: string
+          installments?: number | null
           net_profit?: number | null
           order_number: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -481,6 +510,7 @@ export type Database = {
           gateway_fee?: number | null
           gross_value?: number
           id?: string
+          installments?: number | null
           net_profit?: number | null
           order_number?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
