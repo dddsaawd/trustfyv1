@@ -218,8 +218,11 @@ const Trafego = () => {
     const cpa = conversions > 0 ? spend / conversions : 0;
     const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
     const roi = spend > 0 ? (profit / spend) * 100 : 0;
-    return { spend, revenue, conversions, profit, roas, cpa, margin, roi, clicks, impressions, count: list.length };
-  }, [filteredCampaigns]);
+    // Detect dominant currency
+    const currencies = new Set(list.map(c => accountCurrencyMap[c.ad_account_id || ''] || 'BRL'));
+    const totalsCurrency = currencies.size === 1 ? [...currencies][0] : 'BRL';
+    return { spend, revenue, conversions, profit, roas, cpa, margin, roi, clicks, impressions, count: list.length, currency: totalsCurrency };
+  }, [filteredCampaigns, accountCurrencyMap]);
 
   // Map period to Meta date_preset
   const periodToDatePreset = (period: string): string => {
@@ -794,20 +797,20 @@ const Trafego = () => {
                             <TableCell className="w-8"></TableCell>
                             <TableCell className="text-[10px] text-muted-foreground w-14">—</TableCell>
                             <TableCell className="text-[10px] font-semibold">Resultados de {totals.count} campanhas</TableCell>
-                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(filteredCampaigns.reduce((s, c) => s + Number(c.budget_daily || 0), 0))}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(filteredCampaigns.reduce((s, c) => s + Number(c.budget_daily || 0), 0), totals.currency)}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.conversions}</TableCell>
-                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.conversions > 0 ? fmt(totals.cpa) : '—'}</TableCell>
-                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(totals.spend)}</TableCell>
-                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(totals.revenue)}</TableCell>
-                            <TableCell className={cn('text-[10px] text-right tabular-nums font-bold', totals.profit >= 0 ? 'text-success' : 'text-destructive')}>{fmt(totals.profit)}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.conversions > 0 ? fmt(totals.cpa, totals.currency) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(totals.spend, totals.currency)}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(totals.revenue, totals.currency)}</TableCell>
+                            <TableCell className={cn('text-[10px] text-right tabular-nums font-bold', totals.profit >= 0 ? 'text-success' : 'text-destructive')}>{fmt(totals.profit, totals.currency)}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.roas > 0 ? `${totals.roas.toFixed(2)}x` : '—'}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.revenue > 0 ? fmtPct(totals.margin) : '—'}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.spend > 0 ? fmtPct(totals.roi) : '—'}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{filteredCampaigns.reduce((s, c) => s + Number((c as any).initiate_checkout || 0), 0)}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">—</TableCell>
-                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.clicks > 0 ? fmt(totals.spend / totals.clicks) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.clicks > 0 ? fmt(totals.spend / totals.clicks, totals.currency) : '—'}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions > 0 ? fmtPct((totals.clicks / totals.impressions) * 100) : '—'}</TableCell>
-                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions > 0 ? fmt((totals.spend / totals.impressions) * 1000) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions > 0 ? fmt((totals.spend / totals.impressions) * 1000, totals.currency) : '—'}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions.toLocaleString('pt-BR')}</TableCell>
                             <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.clicks.toLocaleString('pt-BR')}</TableCell>
                           </TableRow>
