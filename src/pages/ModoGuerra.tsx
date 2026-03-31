@@ -153,6 +153,11 @@ const ModoGuerra = () => {
   useEffect(() => {
     if (stats && lastOrderCountRef.current !== null && stats.approvedCount > lastOrderCountRef.current) {
       setNewSaleFlash(true);
+      try {
+        const audio = new Audio('/sounds/sale-notification.mp3');
+        audio.volume = 0.7;
+        audio.play().catch(() => {});
+      } catch (e) {}
       const t = setTimeout(() => setNewSaleFlash(false), 2000);
       return () => clearTimeout(t);
     }
