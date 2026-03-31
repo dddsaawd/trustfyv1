@@ -56,6 +56,7 @@ const App = () => (
             <Route path="/modo-escala" element={<ProtectedPage><ModoEscala /></ProtectedPage>} />
             <Route path="/modo-guerra" element={<ProtectedPage><ModoGuerra /></ProtectedPage>} />
             <Route path="/instalar" element={<Instalar />} />
+            <Route path="/admin" element={<ProtectedPage><Admin /></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
