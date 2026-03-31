@@ -175,11 +175,12 @@ Deno.serve(async (req) => {
           if (campaign.status === 'ACTIVE') status = 'active'
           else if (campaign.status === 'ARCHIVED' || campaign.status === 'DELETED') status = 'ended'
 
-          // Upsert campaign with ad_account_id
+          // Upsert campaign using external_id (Meta campaign ID) for uniqueness
           const { error } = await supabase
             .from('campaigns')
             .upsert({
               user_id: user_id,
+              external_id: campaign.id,
               name: campaign.name,
               platform: 'meta',
               ad_account_id: adAccountUuid,
@@ -199,7 +200,7 @@ Deno.serve(async (req) => {
               score,
               initiate_checkout: initiateCheckout,
               cost_per_ic: costPerIc,
-            }, { onConflict: 'user_id,name,platform,ad_account_id' })
+            }, { onConflict: 'user_id,external_id,platform' })
 
           if (!error) totalSynced++
         }
