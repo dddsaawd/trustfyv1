@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       campaigns_synced: totalSynced,
-      accounts_processed: adAccounts.length 
+      accounts_processed: accountsToSync.length 
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
