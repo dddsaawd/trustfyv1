@@ -1,10 +1,11 @@
 import {
   LayoutDashboard, ShoppingCart, Megaphone, Package, Link2, DollarSign,
-  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords
+  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords, Shield
 } from 'lucide-react';
 import trustfyLogo from '@/assets/trustfy-logo.png';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
+import { useAdmin } from '@/hooks/useAdmin';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
