@@ -90,6 +90,8 @@ interface CorvexPayload {
     content?: string
     campaign?: string
   }
+  installments?: number
+  paidAt?: string
 }
 
 // Anti-fraud: blocked name patterns
@@ -163,10 +165,12 @@ function mapCorvexStatus(status: string): 'approved' | 'pending' | 'refused' | '
 function mapCorvexMethod(method: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
   const map: Record<string, 'pix' | 'credit_card' | 'boleto' | 'debit'> = {
     'pix': 'pix',
+    'card': 'credit_card',
     'credit_card': 'credit_card',
     'credit': 'credit_card',
     'boleto': 'boleto',
     'debit': 'debit',
+    'debit_card': 'debit',
   }
   return map[method] || 'pix'
 }
@@ -220,6 +224,7 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
     gross_value: totalValue,
     payment_method: mapCorvexMethod(corvex.method),
     payment_status: mapCorvexStatus(corvex.status),
+    installments: corvex.installments || undefined,
     platform: 'corvex',
     utm_source: corvex.utm?.source || undefined,
     utm_campaign: corvex.utm?.campaign || undefined,
@@ -227,7 +232,7 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
     utm_term: corvex.utm?.term || undefined,
     state: corvex.address?.state || undefined,
     city: corvex.address?.city || undefined,
-    created_at: corvex.timestamp,
+    created_at: corvex.paidAt || corvex.timestamp,
   }
 
   return {
