@@ -602,6 +602,22 @@ const Trafego = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
+                  {/* Pagination indicator */}
+                  {filteredCampaigns.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredCampaigns.length)} de {filteredCampaigns.length}
+                      </span>
+                      <div className="flex gap-0.5">
+                        <Button variant="outline" size="icon" className="h-6 w-6" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+                          <ChevronDown className="h-3 w-3 rotate-90" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-6 w-6" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                          <ChevronDown className="h-3 w-3 -rotate-90" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <span className="text-[10px] text-muted-foreground">{timeSinceUpdate}</span>
                   <Button size="sm" onClick={() => handleSync()} disabled={syncing || !isConnected} className="h-8 text-xs gap-1.5">
                     {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
