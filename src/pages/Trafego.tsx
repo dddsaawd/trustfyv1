@@ -308,7 +308,7 @@ const Trafego = () => {
                       <Card className="border-primary/20 bg-primary/5">
                         <CardHeader className="pb-2 pt-3 px-4">
                           <CardTitle className="text-xs font-bold text-primary uppercase tracking-wide">
-                            Resumo das Contas Selecionadas ({activeAccountIds.length})
+                            Resumo das Contas Ativas ({activeAccountIds.length})
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="px-4 pb-3">
