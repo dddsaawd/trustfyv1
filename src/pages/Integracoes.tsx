@@ -214,7 +214,7 @@ const Integracoes = () => {
       return;
     }
 
-    FB.login(async (response: any) => {
+    FB.login((response: any) => {
       if (response.status === 'connected' && response.authResponse) {
         const { accessToken, userID } = response.authResponse;
         toast.info('Conectando ao Meta Ads...');
