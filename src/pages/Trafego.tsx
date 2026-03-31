@@ -270,6 +270,18 @@ const Trafego = () => {
     toast.info('Filtro aplicado');
   }, [selectedCampaigns, filteredCampaigns]);
 
+  const duplicateSelected = useCallback(async () => {
+    if (selectedCampaigns.length === 0) { toast.error('Selecione campanhas'); return; }
+    const toDuplicate = filteredCampaigns.filter(c => selectedCampaigns.includes(c.id));
+    for (const c of toDuplicate) {
+      const { id, created_at, updated_at, ...rest } = c;
+      await supabase.from('campaigns').insert({ ...rest, name: `${c.name} — Cópia` });
+    }
+    toast.success(`${toDuplicate.length} campanha(s) duplicada(s)`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, filteredCampaigns, refetch]);
+
   const timeSinceUpdate = dataUpdatedAt
     ? `Atualizado ${Math.round((Date.now() - dataUpdatedAt) / 60000)} min atrás`
     : '';
@@ -412,6 +424,9 @@ const Trafego = () => {
                     <DropdownMenuContent align="start" className="w-52">
                       <DropdownMenuItem onClick={() => toast.info('Gráfico comparativo em breve')}>
                         <BarChart3 className="h-4 w-4 mr-2" /> Gráfico comparativo
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={duplicateSelected} disabled={selectedCampaigns.length === 0}>
+                        <Copy className="h-4 w-4 mr-2" /> Duplicar campanha
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={bulkActivate} disabled={selectedCampaigns.length === 0}>
