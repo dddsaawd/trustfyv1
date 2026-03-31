@@ -271,9 +271,11 @@ export function useDashboardData(): DashboardData {
   });
 
   const { data: campaignSpendBRL, isLoading: loadingCampaigns, refetch: refetchCampaignSpend } = useQuery({
-    queryKey: ['dashboard-campaigns-brl', start, end],
+    queryKey: ['dashboard-campaigns-brl', start, end, adsSyncReady],
     queryFn: getCampaignSpendInBRL,
+    enabled: adsSyncReady,
     refetchInterval: filters.dateRange === 'today' ? 15000 : false,
+    staleTime: 0,
   });
 
   const { data: prevCampaignSpendBRL } = useQuery({
