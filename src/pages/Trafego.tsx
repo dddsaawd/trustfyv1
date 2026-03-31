@@ -91,6 +91,13 @@ const Trafego = () => {
     [adAccounts]
   );
 
+  // Map ad_account_id → currency
+  const accountCurrencyMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (adAccounts || []).forEach(a => { map[a.id] = (a as any).currency || 'BRL'; });
+    return map;
+  }, [adAccounts]);
+
   const toggleAccountActive = useCallback(async (accountId: string, currentActive: boolean) => {
     const { error } = await supabase
       .from('ad_accounts')
