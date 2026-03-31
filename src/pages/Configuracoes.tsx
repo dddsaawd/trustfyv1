@@ -258,8 +258,16 @@ const Configuracoes = () => {
                   onChange={(v) => updateCost('gateway_card_percent', v)}
                 />
                 <CostField
-                  label="Taxa Fixa por Transação"
-                  tooltip="Valor fixo cobrado por transação (ex: R$ 0,39)"
+                  label="Taxa Fixa Pix"
+                  tooltip="Valor fixo cobrado por transação Pix"
+                  icon={DollarSign}
+                  suffix="R$"
+                  value={costs.gateway_pix_fixed}
+                  onChange={(v) => updateCost('gateway_pix_fixed', v)}
+                />
+                <CostField
+                  label="Taxa Fixa Cartão"
+                  tooltip="Valor fixo cobrado por transação no cartão (ex: R$ 0,39)"
                   icon={DollarSign}
                   suffix="R$"
                   value={costs.gateway_fee_fixed}
