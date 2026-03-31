@@ -182,31 +182,68 @@ export function useDashboardData(): DashboardData {
     },
   });
 
-  const { data: campaigns, isLoading: loadingCampaigns } = useQuery({
-    queryKey: ['dashboard-campaigns'],
+  const { data: campaignSpendBRL, isLoading: loadingCampaigns } = useQuery({
+    queryKey: ['dashboard-campaigns-brl'],
     queryFn: async () => {
-      // Only get spend from active ad accounts
+      // 1. Get active accounts with currency
       const { data: activeAccounts } = await supabase
         .from('ad_accounts')
-        .select('id')
+        .select('id, currency')
         .eq('active', true);
-      const activeIds = (activeAccounts || []).map(a => a.id);
-      
-      let query = supabase
-        .from('campaigns')
-        .select('spend')
-        .eq('status', 'active');
-      
-      if (activeIds.length > 0) {
-        query = query.in('ad_account_id', activeIds);
-      } else {
-        // No active accounts = no campaign spend
-        return [];
+      if (!activeAccounts || activeAccounts.length === 0) return 0;
+
+      // 2. Identify unique foreign currencies
+      const currencies = [...new Set(
+        activeAccounts.map(a => (a.currency || 'BRL').toUpperCase()).filter(c => c !== 'BRL')
+      )];
+
+      // 3. Fetch exchange rates to BRL if needed
+      let rates: Record<string, number> = {};
+      if (currencies.length > 0) {
+        try {
+          const res = await fetch(`https://open.er-api.com/v6/latest/BRL`);
+          const json = await res.json();
+          if (json.result === 'success' && json.rates) {
+            // json.rates has BRL-based rates, we need inverse: 1 USD = X BRL
+            for (const c of currencies) {
+              if (json.rates[c]) {
+                rates[c] = 1 / json.rates[c]; // e.g. 1 USD = ~5.5 BRL
+              }
+            }
+          }
+        } catch {
+          // Fallback rates
+          rates = { USD: 5.50, EUR: 6.00, GBP: 7.00, AUD: 3.60, CAD: 4.00 };
+        }
       }
-      
-      const { data, error } = await query;
+
+      // 4. Build account->currency map
+      const accountCurrency: Record<string, string> = {};
+      for (const a of activeAccounts) {
+        accountCurrency[a.id] = (a.currency || 'BRL').toUpperCase();
+      }
+
+      // 5. Get campaigns spend from active accounts
+      const { data: campaignData, error } = await supabase
+        .from('campaigns')
+        .select('spend, ad_account_id')
+        .eq('status', 'active')
+        .in('ad_account_id', activeAccounts.map(a => a.id));
       if (error) throw error;
-      return data ?? [];
+
+      // 6. Sum spend converting to BRL
+      let totalBRL = 0;
+      for (const c of (campaignData || [])) {
+        const spend = c.spend || 0;
+        const currency = c.ad_account_id ? accountCurrency[c.ad_account_id] : 'BRL';
+        if (currency === 'BRL') {
+          totalBRL += spend;
+        } else {
+          const rate = rates[currency] || 1;
+          totalBRL += spend * rate;
+        }
+      }
+      return totalBRL;
     },
     refetchInterval: 60000,
   });
