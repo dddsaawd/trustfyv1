@@ -11,8 +11,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { user_id, date_preset } = await req.json()
+    const { user_id, date_preset, time_range } = await req.json()
     const metaDatePreset = date_preset || 'today'
+    const metaTimeRange = time_range?.since && time_range?.until
+      ? { since: String(time_range.since), until: String(time_range.until) }
+      : null
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'Missing user_id' }), {
@@ -25,7 +28,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get integration config with access token
     const { data: integration } = await supabase
       .from('integrations')
       .select('config')
@@ -51,7 +53,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Check token expiration
     if (config.token_expires_at && new Date(config.token_expires_at) < new Date()) {
       await supabase
         .from('integrations')
@@ -66,38 +67,30 @@ Deno.serve(async (req) => {
     }
 
     let totalSynced = 0
-    const today = new Date().toISOString().split('T')[0]
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    // Get active ad accounts from DB to only sync those
     const { data: activeDbAccounts } = await supabase
       .from('ad_accounts')
       .select('id, account_id')
       .eq('user_id', user_id)
       .eq('active', true)
 
-    const activeAccountIds = new Set((activeDbAccounts || []).map(a => a.account_id))
-
-    // Filter to only sync active accounts
-    const accountsToSync = adAccounts.filter((a: any) => activeAccountIds.has(a.id.replace('act_', '')))
+    const activeAccountIds = new Set((activeDbAccounts || []).map((account) => account.account_id))
+    const accountsToSync = adAccounts.filter((account: any) => activeAccountIds.has(account.id.replace('act_', '')))
 
     for (const account of accountsToSync) {
-      const actId = account.id // format: act_XXXXX
+      const actId = account.id
       const accountNumericId = actId.replace('act_', '')
+      const adAccountUuid = (activeDbAccounts || []).find((dbAccount) => dbAccount.account_id === accountNumericId)?.id || null
 
-      const adAccountUuid = (activeDbAccounts || []).find(a => a.account_id === accountNumericId)?.id || null
-
-      // Check account payment status from Meta API
       try {
         const statusRes = await fetch(
           `https://graph.facebook.com/v21.0/${actId}?fields=account_status,disable_reason,funding_source_details&access_token=${accessToken}`
         )
         const statusData = await statusRes.json()
-        
-        // account_status: 1=Active, 2=Disabled, 3=Unsettled, 7=Pending Risk Review, 8=Pending Settlement, 9=In Grace Period, 100=Pending Closure, 101=Closed, 201=Any Active, 202=Any Closed
+
         let paymentStatus = 'ok'
         let paymentDetail: string | null = null
-        
+
         if (statusData.account_status === 2) {
           paymentStatus = 'disabled'
           paymentDetail = statusData.disable_reason ? `Conta desabilitada (razão: ${statusData.disable_reason})` : 'Conta desabilitada'
@@ -121,13 +114,20 @@ Deno.serve(async (req) => {
             .update({ payment_status: paymentStatus, payment_status_detail: paymentDetail, currency: account.currency || 'BRL' })
             .eq('id', adAccountUuid)
         }
-      } catch (e) {
-        console.error(`Error checking payment status for ${actId}:`, e)
+      } catch (error) {
+        console.error(`Error checking payment status for ${actId}:`, error)
       }
 
-      // Fetch ALL campaigns with pagination
-      let nextUrl: string | null = `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=id,name,status,daily_budget,insights.date_preset(${metaDatePreset}){spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}&limit=500&access_token=${accessToken}`
-      
+      const insightsScope = metaTimeRange
+        ? `insights.time_range({"since":"${metaTimeRange.since}","until":"${metaTimeRange.until}"})`
+        : `insights.date_preset(${metaDatePreset})`
+
+      const fields = encodeURIComponent(
+        `id,name,status,daily_budget,${insightsScope}{spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}`
+      )
+
+      let nextUrl: string | null = `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=${fields}&limit=500&access_token=${accessToken}`
+
       while (nextUrl) {
         const campaignsRes = await fetch(nextUrl)
         const campaignsData = await campaignsRes.json()
@@ -144,16 +144,16 @@ Deno.serve(async (req) => {
           const actions = insights.actions || []
           const actionValues = insights.action_values || []
 
-          const conversions = actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value || 
-                             actions.find((a: any) => a.action_type === 'purchase')?.value || 0
-          const revenue = actionValues.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_purchase')?.value ||
-                         actionValues.find((a: any) => a.action_type === 'purchase')?.value || 0
-          const initiateCheckout = parseInt(actions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
-                                  actions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
+          const conversions = actions.find((action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase')?.value ||
+            actions.find((action: any) => action.action_type === 'purchase')?.value || 0
+          const revenue = actionValues.find((action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase')?.value ||
+            actionValues.find((action: any) => action.action_type === 'purchase')?.value || 0
+          const initiateCheckout = parseInt(actions.find((action: any) => action.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
+            actions.find((action: any) => action.action_type === 'initiate_checkout')?.value || '0')
 
           const costPerActions = insights.cost_per_action_type || []
-          const costPerIc = parseFloat(costPerActions.find((a: any) => a.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
-                           costPerActions.find((a: any) => a.action_type === 'initiate_checkout')?.value || '0')
+          const costPerIc = parseFloat(costPerActions.find((action: any) => action.action_type === 'offsite_conversion.fb_pixel_initiate_checkout')?.value ||
+            costPerActions.find((action: any) => action.action_type === 'initiate_checkout')?.value || '0')
 
           const spend = parseFloat(insights.spend || '0')
           const impressions = parseInt(insights.impressions || '0')
@@ -176,43 +176,54 @@ Deno.serve(async (req) => {
           else if (campaign.status === 'ARCHIVED' || campaign.status === 'DELETED') status = 'ended'
 
           batch.push({
-            user_id: user_id,
+            user_id,
             external_id: campaign.id,
             name: campaign.name,
             platform: 'meta',
             ad_account_id: adAccountUuid,
-            status, budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
-            spend, impressions, clicks, cpm, ctr, cpc, cpa,
-            conversions: conv, revenue: rev, profit, roas, score,
-            initiate_checkout: initiateCheckout, cost_per_ic: costPerIc,
+            status,
+            budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
+            spend,
+            impressions,
+            clicks,
+            cpm,
+            ctr,
+            cpc,
+            cpa,
+            conversions: conv,
+            revenue: rev,
+            profit,
+            roas,
+            score,
+            initiate_checkout: initiateCheckout,
+            cost_per_ic: costPerIc,
           })
         }
 
-        // Batch upsert for speed
         if (batch.length > 0) {
-          const { error, count } = await supabase
+          const { error } = await supabase
             .from('campaigns')
             .upsert(batch, { onConflict: 'user_id,external_id,platform' })
+
           if (!error) totalSynced += batch.length
           else console.error('Batch upsert error:', error)
         }
 
-        // Follow pagination
         nextUrl = campaignsData.paging?.next || null
       }
     }
 
-    // Update last_sync
     await supabase
       .from('integrations')
       .update({ last_sync: new Date().toISOString(), status: 'connected' })
       .eq('user_id', user_id)
       .eq('platform', 'meta')
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       campaigns_synced: totalSynced,
-      accounts_processed: accountsToSync.length 
+      accounts_processed: accountsToSync.length,
+      synced_range: metaTimeRange || metaDatePreset,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

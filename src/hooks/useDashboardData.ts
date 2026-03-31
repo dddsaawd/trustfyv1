@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { KPIData } from '@/types/database';
 
 export type DateRange = 'today' | 'yesterday' | '7d' | '30d' | '365d' | 'custom';
@@ -44,7 +45,6 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
     case 'today': {
       start = `${todayBR}T00:00:00-03:00`;
       end = `${todayBR}T23:59:59-03:00`;
-      // Compare with yesterday
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       const yBR = getBrazilDate(yesterday);
@@ -135,10 +135,97 @@ const changeLabelMap: Record<DateRange, string> = {
   custom: 'vs período anterior',
 };
 
+function getMetaSyncPayload(filters: DashboardFilters) {
+  switch (filters.dateRange) {
+    case 'today':
+      return { date_preset: 'today' };
+    case 'yesterday':
+      return { date_preset: 'yesterday' };
+    case '7d':
+      return { date_preset: 'last_7d' };
+    case '30d':
+      return { date_preset: 'last_30d' };
+    case '365d':
+      return { date_preset: 'last_year' };
+    case 'custom': {
+      const since = getBrazilDate(filters.customStart || new Date());
+      const until = getBrazilDate(filters.customEnd || new Date());
+      return { time_range: { since, until } };
+    }
+  }
+}
+
+async function getCurrencyRates(currencies: string[]) {
+  if (currencies.length === 0) return {} as Record<string, number>;
+
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/BRL');
+    const json = await res.json();
+    if (json.result === 'success' && json.rates) {
+      return currencies.reduce((acc: Record<string, number>, currency: string) => {
+        if (json.rates[currency]) acc[currency] = 1 / json.rates[currency];
+        return acc;
+      }, {});
+    }
+  } catch {
+    return { USD: 5.5, EUR: 6, GBP: 7, AUD: 3.6, CAD: 4 };
+  }
+
+  return {} as Record<string, number>;
+}
+
+async function getCampaignSpendInBRL() {
+  const { data: activeAccounts, error: accountsError } = await supabase
+    .from('ad_accounts')
+    .select('id, currency')
+    .eq('active', true);
+
+  if (accountsError) throw accountsError;
+  if (!activeAccounts || activeAccounts.length === 0) return 0;
+
+  const currencies = [...new Set(
+    activeAccounts.map((account) => (account.currency || 'BRL').toUpperCase()).filter((currency) => currency !== 'BRL')
+  )];
+  const rates = await getCurrencyRates(currencies);
+
+  const accountCurrency = activeAccounts.reduce((acc: Record<string, string>, account) => {
+    acc[account.id] = (account.currency || 'BRL').toUpperCase();
+    return acc;
+  }, {});
+
+  const { data: campaignData, error } = await supabase
+    .from('campaigns')
+    .select('spend, ad_account_id')
+    .in('ad_account_id', activeAccounts.map((account) => account.id));
+
+  if (error) throw error;
+
+  return (campaignData || []).reduce((total, campaign) => {
+    const spend = Number(campaign.spend || 0);
+    const currency = campaign.ad_account_id ? accountCurrency[campaign.ad_account_id] : 'BRL';
+    return total + (currency === 'BRL' ? spend : spend * (rates[currency] || 1));
+  }, 0);
+}
+
+async function getSnapshotAdSpend(startDateTime: string, endDateTime: string) {
+  const startDate = startDateTime.split('T')[0];
+  const endDate = endDateTime.split('T')[0];
+  const { data, error } = await supabase
+    .from('daily_snapshots')
+    .select('ad_spend')
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  if (error) throw error;
+  return (data || []).reduce((sum, snapshot) => sum + Number(snapshot.ad_spend || 0), 0);
+}
+
 export function useDashboardData(): DashboardData {
+  const { user } = useAuth();
   const [filters, setFilters] = useState<DashboardFilters>({ dateRange: 'today' });
   const { start, end, prevStart, prevEnd } = useMemo(() => getDateRange(filters), [filters]);
   const changeLabel = changeLabelMap[filters.dateRange];
+  const lastSyncKeyRef = useRef<string>('');
 
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ['dashboard-orders', start, end],
@@ -182,75 +269,16 @@ export function useDashboardData(): DashboardData {
     },
   });
 
-  const isToday = filters.dateRange === 'today';
+  const { data: campaignSpendBRL, isLoading: loadingCampaigns, refetch: refetchCampaignSpend } = useQuery({
+    queryKey: ['dashboard-campaigns-brl', start, end],
+    queryFn: getCampaignSpendInBRL,
+    refetchInterval: filters.dateRange === 'today' ? 15000 : false,
+  });
 
-  const { data: campaignSpendBRL, isLoading: loadingCampaigns } = useQuery({
-    queryKey: ['dashboard-campaigns-brl', start, end, isToday],
-    queryFn: async () => {
-      if (isToday) {
-        // Real-time: sum from campaigns table with currency conversion
-        const { data: activeAccounts } = await supabase
-          .from('ad_accounts')
-          .select('id, currency')
-          .eq('active', true);
-        if (!activeAccounts || activeAccounts.length === 0) return 0;
-
-        const currencies = [...new Set(
-          activeAccounts.map(a => (a.currency || 'BRL').toUpperCase()).filter(c => c !== 'BRL')
-        )];
-
-        let rates: Record<string, number> = {};
-        if (currencies.length > 0) {
-          try {
-            const res = await fetch(`https://open.er-api.com/v6/latest/BRL`);
-            const json = await res.json();
-            if (json.result === 'success' && json.rates) {
-              for (const c of currencies) {
-                if (json.rates[c]) rates[c] = 1 / json.rates[c];
-              }
-            }
-          } catch {
-            rates = { USD: 5.50, EUR: 6.00, GBP: 7.00, AUD: 3.60, CAD: 4.00 };
-          }
-        }
-
-        const accountCurrency: Record<string, string> = {};
-        for (const a of activeAccounts) {
-          accountCurrency[a.id] = (a.currency || 'BRL').toUpperCase();
-        }
-
-        const { data: campaignData, error } = await supabase
-          .from('campaigns')
-          .select('spend, ad_account_id')
-          .eq('status', 'active')
-          .in('ad_account_id', activeAccounts.map(a => a.id));
-        if (error) throw error;
-
-        let totalBRL = 0;
-        for (const c of (campaignData || [])) {
-          const spend = c.spend || 0;
-          const currency = c.ad_account_id ? accountCurrency[c.ad_account_id] : 'BRL';
-          if (currency === 'BRL') {
-            totalBRL += spend;
-          } else {
-            totalBRL += spend * (rates[currency] || 1);
-          }
-        }
-        return totalBRL;
-      } else {
-        // Historical: sum from daily_snapshots
-        const startDate = start.split('T')[0];
-        const endDate = end.split('T')[0];
-        const { data: snapshots, error } = await supabase
-          .from('daily_snapshots')
-          .select('ad_spend')
-          .gte('date', startDate)
-          .lte('date', endDate);
-        if (error) throw error;
-        return (snapshots || []).reduce((s, snap) => s + (snap.ad_spend || 0), 0);
-      }
-    },
-    refetchInterval: isToday ? 15000 : 60000,
+  const { data: prevCampaignSpendBRL } = useQuery({
+    queryKey: ['dashboard-campaigns-prev-brl', prevStart, prevEnd],
+    queryFn: async () => getSnapshotAdSpend(prevStart, prevEnd),
+    refetchInterval: 60000,
   });
 
   const { data: pixPending } = useQuery({
@@ -274,64 +302,104 @@ export function useDashboardData(): DashboardData {
         .select('installments, rate_percent');
       if (error) return {};
       const map: Record<number, number> = {};
-      for (const r of (data as any[]) || []) {
-        map[r.installments] = Number(r.rate_percent);
+      for (const rate of (data as any[]) || []) {
+        map[rate.installments] = Number(rate.rate_percent);
       }
       return map;
     },
   });
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const syncKey = `${user.id}:${filters.dateRange}:${start}:${end}`;
+    if (lastSyncKeyRef.current === syncKey) return;
+    lastSyncKeyRef.current = syncKey;
+
+    const controller = new AbortController();
+
+    const syncCampaignsForSelectedPeriod = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-sync-campaigns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, ...getMetaSyncPayload(filters) }),
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          await refetchCampaignSpend();
+        }
+      } catch (error) {
+        if ((error as DOMException).name !== 'AbortError') {
+          console.error('Erro ao sincronizar gasto com ads do resumo:', error);
+        }
+      }
+    };
+
+    void syncCampaignsForSelectedPeriod();
+
+    return () => controller.abort();
+  }, [user?.id, filters, start, end, refetchCampaignSpend]);
+
   const isLoading = loadingOrders || loadingCosts || loadingCampaigns;
   const hasRealData = !!(orders && orders.length > 0);
 
-  const computeMetrics = (orderList: any[], cs: typeof costSettings) => {
-    const approved = orderList.filter(o => o.payment_status === 'approved');
-    const pending = orderList.filter(o => o.payment_status === 'pending');
-    const refused = orderList.filter(o => o.payment_status === 'refused');
-    const refunded = orderList.filter(o => o.payment_status === 'refunded');
-    const chargebacks = orderList.filter(o => o.payment_status === 'chargeback');
+  const computeMetrics = (orderList: any[], cs: typeof costSettings, totalAdSpend: number) => {
+    const approved = orderList.filter((order) => order.payment_status === 'approved');
+    const pending = orderList.filter((order) => order.payment_status === 'pending');
+    const refused = orderList.filter((order) => order.payment_status === 'refused');
+    const refunded = orderList.filter((order) => order.payment_status === 'refunded');
+    const chargebacks = orderList.filter((order) => order.payment_status === 'chargeback');
 
-    const grossRevenue = orderList.reduce((s, o) => s + (o.gross_value || 0), 0);
-    const netRevenue = approved.reduce((s, o) => s + (o.gross_value || 0), 0)
-      - refunded.reduce((s, o) => s + (o.gross_value || 0), 0)
-      - chargebacks.reduce((s, o) => s + (o.gross_value || 0), 0);
+    const grossRevenue = orderList.reduce((sum, order) => sum + Number(order.gross_value || 0), 0);
+    const netRevenue = approved.reduce((sum, order) => sum + Number(order.gross_value || 0), 0)
+      - refunded.reduce((sum, order) => sum + Number(order.gross_value || 0), 0)
+      - chargebacks.reduce((sum, order) => sum + Number(order.gross_value || 0), 0);
 
-    const totalProductCost = approved.reduce((s, o) => s + (o.product_cost || 0), 0);
-    const totalGatewayFee = approved.reduce((s, o) => {
-      // If order already has gateway_fee calculated (from webhook), use it
-      if (o.gateway_fee && o.gateway_fee > 0) return s + o.gateway_fee;
-      if (!cs) return s;
-      
-      const method = o.payment_method || 'pix';
-      const installments = o.installments || 1;
-      const csAny = cs as any;
-      
+    const totalProductCost = approved.reduce((sum, order) => sum + Number(order.product_cost || 0), 0);
+    const totalGatewayFee = approved.reduce((sum, order) => {
+      if (order.gateway_fee && order.gateway_fee > 0) return sum + Number(order.gateway_fee);
+      if (!cs) return sum;
+
+      const method = order.payment_method || 'pix';
+      const installments = order.installments || 1;
+      const costSettingsAny = cs as any;
+
       if (method === 'credit_card' && installments >= 2 && installmentRates && installmentRates[installments]) {
-        return s + (o.gross_value * installmentRates[installments] / 100);
-      } else if (method === 'credit_card') {
-        const cardRate = csAny.gateway_card_percent || cs.gateway_fee_percent || 0;
-        const cardFixed = cs.gateway_fee_fixed || 0;
-        return s + (o.gross_value * cardRate / 100) + cardFixed;
-      } else if (method === 'pix') {
-        const pixRate = csAny.gateway_pix_percent || 0;
-        const pixFixed = csAny.gateway_pix_fixed || 0;
-        return s + (o.gross_value * pixRate / 100) + pixFixed;
-      } else if (method === 'boleto') {
-        return s + (cs.boleto_fee || 0);
+        return sum + (Number(order.gross_value || 0) * installmentRates[installments] / 100);
       }
-      return s + ((o.gross_value * cs.gateway_fee_percent / 100) + cs.gateway_fee_fixed);
-    }, 0);
-    const totalShipping = approved.reduce((s, o) => {
-      if (o.shipping_cost && o.shipping_cost > 0) return s + o.shipping_cost;
-      return s + (cs?.avg_shipping ?? 0);
-    }, 0);
-    const totalTax = approved.reduce((s, o) => {
-      if (o.tax && o.tax > 0) return s + o.tax;
-      if (cs) return s + (o.gross_value * cs.tax_percent / 100);
-      return s;
+
+      if (method === 'credit_card') {
+        const cardRate = costSettingsAny.gateway_card_percent || cs.gateway_fee_percent || 0;
+        const cardFixed = cs.gateway_fee_fixed || 0;
+        return sum + (Number(order.gross_value || 0) * cardRate / 100) + Number(cardFixed);
+      }
+
+      if (method === 'pix') {
+        const pixRate = costSettingsAny.gateway_pix_percent || 0;
+        const pixFixed = costSettingsAny.gateway_pix_fixed || 0;
+        return sum + (Number(order.gross_value || 0) * pixRate / 100) + Number(pixFixed);
+      }
+
+      if (method === 'boleto') {
+        return sum + Number(cs.boleto_fee || 0);
+      }
+
+      return sum + ((Number(order.gross_value || 0) * Number(cs.gateway_fee_percent || 0) / 100) + Number(cs.gateway_fee_fixed || 0));
     }, 0);
 
-    const totalAdSpend = campaignSpendBRL ?? 0;
+    const totalShipping = approved.reduce((sum, order) => {
+      if (order.shipping_cost && order.shipping_cost > 0) return sum + Number(order.shipping_cost);
+      return sum + Number(cs?.avg_shipping ?? 0);
+    }, 0);
+
+    const totalTax = approved.reduce((sum, order) => {
+      if (order.tax && order.tax > 0) return sum + Number(order.tax);
+      if (cs) return sum + (Number(order.gross_value || 0) * Number(cs.tax_percent || 0) / 100);
+      return sum;
+    }, 0);
+
     const netProfit = netRevenue - totalProductCost - totalGatewayFee - totalShipping - totalTax - totalAdSpend;
     const roas = totalAdSpend > 0 ? grossRevenue / totalAdSpend : 0;
     const totalCost = totalProductCost + totalGatewayFee + totalShipping + totalTax + totalAdSpend;
@@ -341,25 +409,43 @@ export function useDashboardData(): DashboardData {
     const approvalRate = orderList.length > 0 ? (approved.length / orderList.length) * 100 : 0;
 
     return {
-      grossRevenue, netRevenue, totalAdSpend, netProfit, roas, roi, margin, avgTicket,
-      approvedCount: approved.length, approvalRate,
-      pendingCount: pending.length, refusedCount: refused.length,
+      grossRevenue,
+      netRevenue,
+      totalAdSpend,
+      netProfit,
+      roas,
+      roi,
+      margin,
+      avgTicket,
+      approvedCount: approved.length,
+      approvalRate,
+      pendingCount: pending.length,
+      refusedCount: refused.length,
       totalCount: orderList.length,
     };
   };
 
   if (!hasRealData || !orders) {
     return {
-      kpis: [], warModeKPIs: [], recentOrders: [],
-      isLoading, hasRealData: false, filters, setFilters,
-      totalOrders: 0, totalApproved: 0, totalPending: 0, totalRefused: 0,
+      kpis: [],
+      warModeKPIs: [],
+      recentOrders: [],
+      isLoading,
+      hasRealData: false,
+      filters,
+      setFilters,
+      totalOrders: 0,
+      totalApproved: 0,
+      totalPending: 0,
+      totalRefused: 0,
     };
   }
 
-  const m = computeMetrics(orders, costSettings);
-  const pm = prevOrders ? computeMetrics(prevOrders, costSettings) : null;
+  const m = computeMetrics(orders, costSettings, Number(campaignSpendBRL || 0));
+  const pm = prevOrders ? computeMetrics(prevOrders, costSettings, Number(prevCampaignSpendBRL || 0)) : null;
 
-  const pixPendingTotal = pixPending?.reduce((s, p) => s + (p.value || 0), 0) ?? 0;
+  const pixPendingTotal = pixPending?.reduce((sum, pending) => sum + Number(pending.value || 0), 0) ?? 0;
+  void pixPendingTotal;
 
   const kpis: KPIData[] = [
     { label: 'Faturamento Bruto', value: `R$ ${fmt(m.grossRevenue)}`, change: pm ? calcChange(m.grossRevenue, pm.grossRevenue) : 0, changeLabel, tooltip: 'Total de vendas brutas no período' },
@@ -382,10 +468,16 @@ export function useDashboardData(): DashboardData {
   ];
 
   return {
-    kpis, warModeKPIs,
+    kpis,
+    warModeKPIs,
     recentOrders: orders.slice(0, 10),
-    isLoading, hasRealData: true, filters, setFilters,
-    totalOrders: m.totalCount, totalApproved: m.approvedCount,
-    totalPending: m.pendingCount, totalRefused: m.refusedCount,
+    isLoading,
+    hasRealData: true,
+    filters,
+    setFilters,
+    totalOrders: m.totalCount,
+    totalApproved: m.approvedCount,
+    totalPending: m.pendingCount,
+    totalRefused: m.refusedCount,
   };
 }
