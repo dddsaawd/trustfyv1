@@ -206,26 +206,64 @@ const Trafego = () => {
     return { spend, revenue, conversions, profit, roas, cpa, margin, roi, clicks, impressions, count: list.length };
   }, [filteredCampaigns]);
 
-  const handleSync = async () => {
+  // Map period to Meta date_preset
+  const periodToDatePreset = (period: string): string => {
+    switch (period) {
+      case 'today': return 'today';
+      case 'yesterday': return 'yesterday';
+      case '7d': return 'last_7d';
+      case 'this_month': return 'this_month';
+      case 'last_month': return 'last_month';
+      case 'max': return 'maximum';
+      default: return 'today';
+    }
+  };
+
+  const handleSync = async (silent = false) => {
     if (!user || activePlatform !== 'meta') return;
     setSyncing(true);
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/meta-sync-campaigns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id }),
+        body: JSON.stringify({ user_id: user.id, date_preset: periodToDatePreset(datePeriod) }),
       });
       const json = await res.json();
       if (res.ok) {
-        toast.success(`${json.campaigns_synced} campanhas sincronizadas!`);
+        if (!silent) toast.success(`${json.campaigns_synced} campanhas sincronizadas!`);
         refetch();
       } else {
-        toast.error(json.error || 'Erro ao sincronizar');
+        if (!silent) toast.error(json.error || 'Erro ao sincronizar');
       }
     } catch {
-      toast.error('Erro de rede ao sincronizar');
+      if (!silent) toast.error('Erro de rede ao sincronizar');
     }
     setSyncing(false);
+  };
+
+  // Auto-sync when date period changes
+  const handlePeriodChange = (value: string) => {
+    setDatePeriod(value);
+    // Trigger sync with new period after state update
+    setTimeout(() => {
+      if (user && activePlatform === 'meta' && isConnected) {
+        setSyncing(true);
+        fetch(`${supabaseUrl}/functions/v1/meta-sync-campaigns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, date_preset: periodToDatePreset(value) }),
+        })
+          .then(res => res.json())
+          .then(json => {
+            if (json.success) {
+              toast.success(`Dados atualizados para o período selecionado`);
+              refetch();
+            }
+          })
+          .catch(() => {})
+          .finally(() => setSyncing(false));
+      }
+    }, 100);
   };
 
   const toggleCampaignStatus = useCallback(async (campaignId: string, currentStatus: string) => {
