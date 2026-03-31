@@ -125,9 +125,9 @@ Deno.serve(async (req) => {
         console.error(`Error checking payment status for ${actId}:`, e)
       }
 
-      // Fetch campaigns with insights
+      // Fetch campaigns with insights using dynamic date preset
       const campaignsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=id,name,status,daily_budget,insights.date_preset(last_30d){spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}&limit=100&access_token=${accessToken}`
+        `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=id,name,status,daily_budget,insights.date_preset(${metaDatePreset}){spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}&limit=100&access_token=${accessToken}`
       )
       const campaignsData = await campaignsRes.json()
 
