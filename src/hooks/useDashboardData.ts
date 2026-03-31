@@ -447,6 +447,7 @@ export function useDashboardData(): DashboardData {
       totalApproved: 0,
       totalPending: 0,
       totalRefused: 0,
+      adsSyncing: !adsSyncReady,
     };
   }
 
