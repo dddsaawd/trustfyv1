@@ -95,10 +95,14 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
         <NavLink to="/modo-escala" className="flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5 text-sm text-primary transition-all hover:bg-primary/10" activeClassName="bg-primary/15">
           <TrendingUp className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="font-medium">Modo Escala</span>}
+        </NavLink>
+        <NavLink to="/modo-guerra" className="flex items-center gap-3 rounded-lg bg-destructive/5 border border-destructive/10 px-3 py-2.5 text-sm text-destructive transition-all hover:bg-destructive/10" activeClassName="bg-destructive/15">
+          <Swords className="h-4 w-4 shrink-0" />
+          {!collapsed && <span className="font-medium">Modo Guerra</span>}
         </NavLink>
       </SidebarFooter>
     </Sidebar>
