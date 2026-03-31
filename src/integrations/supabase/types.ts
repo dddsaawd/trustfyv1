@@ -76,6 +76,7 @@ export type Database = {
           cpm: number | null
           created_at: string
           ctr: number | null
+          external_id: string | null
           id: string
           impressions: number | null
           initiate_checkout: number | null
@@ -101,6 +102,7 @@ export type Database = {
           cpm?: number | null
           created_at?: string
           ctr?: number | null
+          external_id?: string | null
           id?: string
           impressions?: number | null
           initiate_checkout?: number | null
@@ -126,6 +128,7 @@ export type Database = {
           cpm?: number | null
           created_at?: string
           ctr?: number | null
+          external_id?: string | null
           id?: string
           impressions?: number | null
           initiate_checkout?: number | null

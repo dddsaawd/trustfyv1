@@ -55,6 +55,8 @@ const Trafego = () => {
   const [sortColumn, setSortColumn] = useState<string>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [datePeriod, setDatePeriod] = useState('today');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 200;
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -205,7 +207,7 @@ const Trafego = () => {
       });
   }, [campaigns, nameFilter, statusFilter, activeAccountIds, sortColumn, sortDirection]);
 
-  // Aggregated totals
+  // Aggregated totals (based on ALL filtered, not paginated)
   const totals = useMemo(() => {
     const list = filteredCampaigns;
     const spend = list.reduce((s, c) => s + Number(c.spend || 0), 0);
@@ -218,11 +220,20 @@ const Trafego = () => {
     const cpa = conversions > 0 ? spend / conversions : 0;
     const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
     const roi = spend > 0 ? (profit / spend) * 100 : 0;
-    // Detect dominant currency
     const currencies = new Set(list.map(c => accountCurrencyMap[c.ad_account_id || ''] || 'BRL'));
     const totalsCurrency = currencies.size === 1 ? [...currencies][0] : 'BRL';
     return { spend, revenue, conversions, profit, roas, cpa, margin, roi, clicks, impressions, count: list.length, currency: totalsCurrency };
   }, [filteredCampaigns, accountCurrencyMap]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
+  const paginatedCampaigns = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCampaigns.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCampaigns, currentPage]);
+
+  // Reset page when filters change
+  useMemo(() => { setCurrentPage(1); }, [nameFilter, statusFilter, activePlatform]);
 
   // Map period to Meta date_preset
   const periodToDatePreset = (period: string): string => {
@@ -591,6 +602,22 @@ const Trafego = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
+                  {/* Pagination indicator */}
+                  {filteredCampaigns.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredCampaigns.length)} de {filteredCampaigns.length}
+                      </span>
+                      <div className="flex gap-0.5">
+                        <Button variant="outline" size="icon" className="h-6 w-6" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+                          <ChevronDown className="h-3 w-3 rotate-90" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-6 w-6" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                          <ChevronDown className="h-3 w-3 -rotate-90" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <span className="text-[10px] text-muted-foreground">{timeSinceUpdate}</span>
                   <Button size="sm" onClick={() => handleSync()} disabled={syncing || !isConnected} className="h-8 text-xs gap-1.5">
                     {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -713,8 +740,8 @@ const Trafego = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredCampaigns.length > 0 ? (
-                          filteredCampaigns.map((c) => {
+                        {paginatedCampaigns.length > 0 ? (
+                          paginatedCampaigns.map((c) => {
                             const spend = Number(c.spend || 0);
                             const rev = Number(c.revenue || 0);
                             const pft = Number(c.profit || 0);
