@@ -382,6 +382,7 @@ const Trafego = () => {
                               {(acc as any).payment_status_detail && (acc as any).payment_status !== 'ok' && (
                                 <p className="text-[9px] text-destructive mt-0.5">{(acc as any).payment_status_detail}</p>
                               )}
+                            </div>
                             <Switch
                               checked={acc.active}
                               onCheckedChange={() => toggleAccountActive(acc.id, acc.active)}
