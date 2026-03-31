@@ -163,6 +163,7 @@ export type Database = {
           gateway_card_percent: number
           gateway_fee_fixed: number
           gateway_fee_percent: number
+          gateway_pix_fixed: number
           gateway_pix_percent: number
           gateway_provider: string | null
           id: string
@@ -183,6 +184,7 @@ export type Database = {
           gateway_card_percent?: number
           gateway_fee_fixed?: number
           gateway_fee_percent?: number
+          gateway_pix_fixed?: number
           gateway_pix_percent?: number
           gateway_provider?: string | null
           id?: string
@@ -203,6 +205,7 @@ export type Database = {
           gateway_card_percent?: number
           gateway_fee_fixed?: number
           gateway_fee_percent?: number
+          gateway_pix_fixed?: number
           gateway_pix_percent?: number
           gateway_provider?: string | null
           id?: string
