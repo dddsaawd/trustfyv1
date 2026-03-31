@@ -91,11 +91,6 @@ const ModoGuerra = () => {
   const [newSaleFlash, setNewSaleFlash] = useState(false);
   const lastOrderCountRef = useRef<number | null>(null);
 
-  // Fullscreen
-  useEffect(() => {
-    document.documentElement.requestFullscreen?.().catch(() => {});
-    return () => { document.exitFullscreen?.().catch(() => {}); };
-  }, []);
 
   // Clock tick
   useEffect(() => {
@@ -198,7 +193,6 @@ const ModoGuerra = () => {
   }, [orders]);
 
   const handleExit = () => {
-    document.exitFullscreen?.().catch(() => {});
     navigate('/');
   };
 
