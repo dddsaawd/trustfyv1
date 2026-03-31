@@ -185,10 +185,26 @@ export function useDashboardData(): DashboardData {
   const { data: campaigns, isLoading: loadingCampaigns } = useQuery({
     queryKey: ['dashboard-campaigns'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Only get spend from active ad accounts
+      const { data: activeAccounts } = await supabase
+        .from('ad_accounts')
+        .select('id')
+        .eq('active', true);
+      const activeIds = (activeAccounts || []).map(a => a.id);
+      
+      let query = supabase
         .from('campaigns')
         .select('spend')
         .eq('status', 'active');
+      
+      if (activeIds.length > 0) {
+        query = query.in('ad_account_id', activeIds);
+      } else {
+        // No active accounts = no campaign spend
+        return [];
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },

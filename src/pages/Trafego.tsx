@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +38,7 @@ const Trafego = () => {
   const [nameFilter, setNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [syncing, setSyncing] = useState(false);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -58,7 +59,7 @@ const Trafego = () => {
   });
 
   // Fetch ad accounts
-  const { data: adAccounts } = useQuery({
+  const { data: adAccounts, refetch: refetchAccounts } = useQuery({
     queryKey: ['ad_accounts', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from('ad_accounts').select('*');
@@ -67,6 +68,33 @@ const Trafego = () => {
     },
     enabled: !!user,
   });
+
+  // Active account IDs (derived from DB active field)
+  const activeAccountIds = useMemo(() =>
+    (adAccounts || []).filter(a => a.active).map(a => a.id),
+    [adAccounts]
+  );
+
+  const toggleAccountActive = useCallback(async (accountId: string, currentActive: boolean) => {
+    const { error } = await supabase
+      .from('ad_accounts')
+      .update({ active: !currentActive })
+      .eq('id', accountId);
+    if (error) {
+      toast.error('Erro ao atualizar conta');
+      return;
+    }
+    refetchAccounts();
+  }, [refetchAccounts]);
+
+  const toggleAllAccounts = useCallback(async (activate: boolean) => {
+    if (!adAccounts) return;
+    const ids = adAccounts.map(a => a.id);
+    for (const id of ids) {
+      await supabase.from('ad_accounts').update({ active: activate }).eq('id', id);
+    }
+    refetchAccounts();
+  }, [adAccounts, refetchAccounts]);
 
   // Fetch integration status
   const { data: integration } = useQuery({
@@ -89,12 +117,12 @@ const Trafego = () => {
     if (!campaigns) return [];
     return campaigns.filter(c => {
       // If accounts are selected, only show campaigns from those accounts
-      if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(c.ad_account_id || '')) return false;
+      if (activeAccountIds.length > 0 && !activeAccountIds.includes(c.ad_account_id || '')) return false;
       if (nameFilter && !c.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       return true;
     });
-  }, [campaigns, nameFilter, statusFilter, selectedAccountIds]);
+  }, [campaigns, nameFilter, statusFilter, activeAccountIds]);
 
   // Aggregated totals
   const totals = useMemo(() => {
@@ -207,21 +235,21 @@ const Trafego = () => {
                         size="sm"
                         variant="outline"
                         className="h-7 text-[10px]"
-                        onClick={() => setSelectedAccountIds(adAccounts.map(a => a.id))}
+                        onClick={() => toggleAllAccounts(true)}
                       >
-                        Selecionar Todas
+                        Ativar Todas
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-7 text-[10px]"
-                        onClick={() => setSelectedAccountIds([])}
+                        onClick={() => toggleAllAccounts(false)}
                       >
-                        Limpar
+                        Desativar Todas
                       </Button>
-                      {selectedAccountIds.length > 0 && (
+                      {activeAccountIds.length > 0 && (
                         <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
-                          {selectedAccountIds.length} conta{selectedAccountIds.length > 1 ? 's' : ''} selecionada{selectedAccountIds.length > 1 ? 's' : ''}
+                          {activeAccountIds.length} conta{activeAccountIds.length > 1 ? 's' : ''} ativa{activeAccountIds.length > 1 ? 's' : ''}
                         </Badge>
                       )}
                     </div>
@@ -230,27 +258,21 @@ const Trafego = () => {
                   {/* Account Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {adAccounts.map(acc => {
-                      const isSelected = selectedAccountIds.includes(acc.id);
+                      const isActive = acc.active;
                       return (
                         <Card
                           key={acc.id}
                           className={cn(
                             'border-border cursor-pointer transition-all hover:border-primary/40',
-                            isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                            isActive && 'border-primary bg-primary/5 ring-1 ring-primary/20'
                           )}
-                          onClick={() => {
-                            setSelectedAccountIds(prev =>
-                              prev.includes(acc.id)
-                                ? prev.filter(id => id !== acc.id)
-                                : [...prev, acc.id]
-                            );
-                          }}
+                          onClick={() => toggleAccountActive(acc.id, acc.active)}
                         >
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <Checkbox
-                                  checked={isSelected}
+                                  checked={isActive}
                                   className="h-4 w-4"
                                   onCheckedChange={() => {}}
                                 />
@@ -271,9 +293,9 @@ const Trafego = () => {
                   </div>
 
                   {/* Selected Accounts Summary */}
-                  {selectedAccountIds.length > 0 && (() => {
+                  {activeAccountIds.length > 0 && (() => {
                     const selectedCampaigns = (campaigns || []).filter(c =>
-                      selectedAccountIds.includes(c.ad_account_id || '')
+                      activeAccountIds.includes(c.ad_account_id || '')
                     );
                     const totalSpend = selectedCampaigns.reduce((s, c) => s + Number(c.spend || 0), 0);
                     const totalRevenue = selectedCampaigns.reduce((s, c) => s + Number(c.revenue || 0), 0);
@@ -286,7 +308,7 @@ const Trafego = () => {
                       <Card className="border-primary/20 bg-primary/5">
                         <CardHeader className="pb-2 pt-3 px-4">
                           <CardTitle className="text-xs font-bold text-primary uppercase tracking-wide">
-                            Resumo das Contas Selecionadas ({selectedAccountIds.length})
+                            Resumo das Contas Ativas ({activeAccountIds.length})
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="px-4 pb-3">
