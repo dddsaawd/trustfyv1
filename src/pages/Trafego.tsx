@@ -477,7 +477,7 @@ const Trafego = () => {
                           })
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={13} className="text-center py-6">
+                            <TableCell colSpan={18} className="text-center py-6">
                               <p className="text-xs text-muted-foreground">N/A</p>
                             </TableCell>
                           </TableRow>
@@ -497,6 +497,11 @@ const Trafego = () => {
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.roas > 0 ? `${totals.roas.toFixed(2)}x` : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.revenue > 0 ? fmtPct(totals.margin) : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.spend > 0 ? fmtPct(totals.roi) : 'N/A'}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend > 0 && totals.clicks > 0 ? totals.spend / totals.clicks : 0)}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions > 0 ? fmtPct((totals.clicks / totals.impressions) * 100) : '0,0%'}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0)}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{totals.clicks.toLocaleString('pt-BR')}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
