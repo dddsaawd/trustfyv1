@@ -5,12 +5,14 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const ModoEscala = () => {
   const { user } = useAuth();
+  const lastCountRef = useRef<number | null>(null);
+  const [flash, setFlash] = useState(false);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders-escala', user?.id],
@@ -56,6 +58,22 @@ const ModoEscala = () => {
 
     return { grossRevenue, netProfit, approvedCount: approved.length, roas, topProduct };
   }, [hasRealData, orders]);
+
+  // Detect new sales and play sound
+  useEffect(() => {
+    if (!stats) return;
+    if (lastCountRef.current !== null && stats.approvedCount > lastCountRef.current) {
+      setFlash(true);
+      try {
+        const audio = new Audio('/sounds/sale-notification.mp3');
+        audio.volume = 0.7;
+        audio.play().catch(() => {});
+      } catch (e) {}
+      const t = setTimeout(() => setFlash(false), 2000);
+      return () => clearTimeout(t);
+    }
+    lastCountRef.current = stats.approvedCount;
+  }, [stats?.approvedCount]);
 
   const topCampaign = campaigns && campaigns.length > 0 ? campaigns[0] : null;
 
