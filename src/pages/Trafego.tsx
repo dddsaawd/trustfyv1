@@ -618,6 +618,8 @@ const Trafego = () => {
                             { key: 'roas', label: 'ROAS', align: 'right', info: true },
                             { key: 'margin', label: 'MARGEM', align: 'right', info: true },
                             { key: 'roi', label: 'ROI', align: 'right', info: true },
+                            { key: 'initiate_checkout', label: 'IC', align: 'right' },
+                            { key: 'cost_per_ic', label: 'CPI', align: 'right' },
                             { key: 'cpc', label: 'CPC', align: 'right' },
                             { key: 'ctr', label: 'CTR', align: 'right' },
                             { key: 'cpm', label: 'CPM', align: 'right' },
