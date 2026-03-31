@@ -54,6 +54,7 @@ const Trafego = () => {
   const [bulkBudgetValue, setBulkBudgetValue] = useState('');
   const [sortColumn, setSortColumn] = useState<string>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [datePeriod, setDatePeriod] = useState('today');
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
