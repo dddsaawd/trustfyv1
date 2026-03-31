@@ -395,7 +395,7 @@ const Trafego = () => {
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
                           <TableHead className="text-[10px] w-8"><Checkbox className="h-3.5 w-3.5" /></TableHead>
-                          <TableHead className="text-[10px]">STATUS</TableHead>
+                          <TableHead className="text-[10px] w-14">STATUS</TableHead>
                           <TableHead className="text-[10px]">CAMPANHA</TableHead>
                           <TableHead className="text-[10px] text-right">ORÇAMENTO</TableHead>
                           <TableHead className="text-[10px] text-right">ÚLT. ATUALIZAÇÃO</TableHead>
