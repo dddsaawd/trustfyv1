@@ -488,5 +488,6 @@ export function useDashboardData(): DashboardData {
     totalApproved: m.approvedCount,
     totalPending: m.pendingCount,
     totalRefused: m.refusedCount,
+    adsSyncing: !adsSyncReady,
   };
 }
