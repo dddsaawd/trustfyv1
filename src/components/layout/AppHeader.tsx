@@ -39,18 +39,6 @@ export function AppHeader({ title }: AppHeaderProps) {
       <h1 className="text-sm font-semibold text-foreground tracking-tight hidden sm:block">{title}</h1>
 
       <div className="ml-auto flex items-center gap-2">
-        <Select defaultValue="today">
-          <SelectTrigger className="h-8 w-[120px] text-xs bg-secondary border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Hoje</SelectItem>
-            <SelectItem value="yesterday">Ontem</SelectItem>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="custom">Personalizado</SelectItem>
-          </SelectContent>
-        </Select>
 
         <Select defaultValue="all">
           <SelectTrigger className="h-8 w-[130px] text-xs bg-secondary border-border hidden md:flex">
