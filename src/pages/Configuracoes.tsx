@@ -12,12 +12,16 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Save, Loader2, Info, CreditCard, Truck, Receipt, PiggyBank, Percent, DollarSign } from 'lucide-react';
+import { Save, Loader2, Info, CreditCard, Truck, Receipt, PiggyBank, Percent, DollarSign, ChevronDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CostSettings {
+  gateway_provider: string;
   gateway_fee_percent: number;
   gateway_fee_fixed: number;
+  gateway_pix_percent: number;
+  gateway_card_percent: number;
   avg_shipping: number;
   tax_percent: number;
   monthly_fixed_expenses: number;
@@ -29,9 +33,22 @@ interface CostSettings {
   antecipation_fee_percent: number;
 }
 
+const GATEWAY_PRESETS: Record<string, { label: string; pix: number; card: number; fixed: number; boleto: number }> = {
+  'pagar_me': { label: 'Pagar.me', pix: 1.19, card: 4.99, fixed: 0.39, boleto: 3.49 },
+  'mercado_pago': { label: 'Mercado Pago', pix: 0.99, card: 4.98, fixed: 0, boleto: 3.49 },
+  'pagseguro': { label: 'PagSeguro', pix: 0.99, card: 4.99, fixed: 0, boleto: 3.49 },
+  'stripe': { label: 'Stripe', pix: 0, card: 3.99, fixed: 0.39, boleto: 0 },
+  'appmax': { label: 'Appmax', pix: 0.99, card: 4.79, fixed: 0, boleto: 2.99 },
+  'yampi': { label: 'Yampi Pay', pix: 0.99, card: 4.49, fixed: 0, boleto: 3.49 },
+  'custom': { label: 'Personalizado', pix: 0, card: 4.99, fixed: 0, boleto: 3.49 },
+};
+
 const defaultCosts: CostSettings = {
+  gateway_provider: 'custom',
   gateway_fee_percent: 4.99,
   gateway_fee_fixed: 0,
+  gateway_pix_percent: 0,
+  gateway_card_percent: 4.99,
   avg_shipping: 12.00,
   tax_percent: 5.00,
   monthly_fixed_expenses: 530.00,
@@ -96,8 +113,11 @@ const Configuracoes = () => {
 
     if (data) {
       setCosts({
+        gateway_provider: (data as any).gateway_provider || 'custom',
         gateway_fee_percent: Number(data.gateway_fee_percent),
         gateway_fee_fixed: Number(data.gateway_fee_fixed),
+        gateway_pix_percent: Number((data as any).gateway_pix_percent ?? 0),
+        gateway_card_percent: Number((data as any).gateway_card_percent ?? 4.99),
         avg_shipping: Number(data.avg_shipping),
         tax_percent: Number(data.tax_percent),
         monthly_fixed_expenses: Number(data.monthly_fixed_expenses),
@@ -184,16 +204,54 @@ const Configuracoes = () => {
                   <CreditCard className="h-4 w-4 text-primary" />
                   Gateway de Pagamento
                 </CardTitle>
-                <CardDescription className="text-[10px]">Taxas cobradas pelo processador de pagamento</CardDescription>
+                <CardDescription className="text-[10px]">Selecione seu gateway ou personalize as taxas</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Gateway</Label>
+                  <Select
+                    value={costs.gateway_provider}
+                    onValueChange={(v) => {
+                      const preset = GATEWAY_PRESETS[v];
+                      if (preset) {
+                        setCosts(prev => ({
+                          ...prev,
+                          gateway_provider: v,
+                          gateway_pix_percent: preset.pix,
+                          gateway_card_percent: preset.card,
+                          gateway_fee_fixed: preset.fixed,
+                          boleto_fee: preset.boleto,
+                          gateway_fee_percent: preset.card,
+                        }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(GATEWAY_PRESETS).map(([key, val]) => (
+                        <SelectItem key={key} value={key} className="text-xs">{val.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Separator />
                 <CostField
-                  label="Taxa Percentual"
-                  tooltip="Percentual cobrado por transação (ex: 4.99% no Pagar.me)"
+                  label="Taxa Pix"
+                  tooltip="Percentual cobrado em transações via Pix"
                   icon={Percent}
                   suffix="%"
-                  value={costs.gateway_fee_percent}
-                  onChange={(v) => updateCost('gateway_fee_percent', v)}
+                  value={costs.gateway_pix_percent}
+                  onChange={(v) => updateCost('gateway_pix_percent', v)}
+                />
+                <CostField
+                  label="Taxa Cartão"
+                  tooltip="Percentual cobrado em transações via cartão de crédito"
+                  icon={Percent}
+                  suffix="%"
+                  value={costs.gateway_card_percent}
+                  onChange={(v) => updateCost('gateway_card_percent', v)}
                 />
                 <CostField
                   label="Taxa Fixa por Transação"

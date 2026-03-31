@@ -160,8 +160,11 @@ export type Database = {
           boleto_fee: number
           chargeback_rate: number
           created_at: string
+          gateway_card_percent: number
           gateway_fee_fixed: number
           gateway_fee_percent: number
+          gateway_pix_percent: number
+          gateway_provider: string | null
           id: string
           marketplace_fee_percent: number
           monthly_fixed_expenses: number
@@ -177,8 +180,11 @@ export type Database = {
           boleto_fee?: number
           chargeback_rate?: number
           created_at?: string
+          gateway_card_percent?: number
           gateway_fee_fixed?: number
           gateway_fee_percent?: number
+          gateway_pix_percent?: number
+          gateway_provider?: string | null
           id?: string
           marketplace_fee_percent?: number
           monthly_fixed_expenses?: number
@@ -194,8 +200,11 @@ export type Database = {
           boleto_fee?: number
           chargeback_rate?: number
           created_at?: string
+          gateway_card_percent?: number
           gateway_fee_fixed?: number
           gateway_fee_percent?: number
+          gateway_pix_percent?: number
+          gateway_provider?: string | null
           id?: string
           marketplace_fee_percent?: number
           monthly_fixed_expenses?: number
