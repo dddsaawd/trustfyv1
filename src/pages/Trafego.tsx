@@ -272,7 +272,7 @@ const Trafego = () => {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <Checkbox
-                                  checked={isSelected}
+                                  checked={isActive}
                                   className="h-4 w-4"
                                   onCheckedChange={() => {}}
                                 />
