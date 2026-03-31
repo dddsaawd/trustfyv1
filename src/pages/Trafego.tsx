@@ -421,7 +421,7 @@ const Trafego = () => {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-semibold text-foreground">{acc.name}</p>
-                              <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id}</p>
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id} · <span className="font-semibold">{(acc as any).currency || 'BRL'}</span></p>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <p className="text-[10px] text-muted-foreground">
                                   {acc.active ? 'Ativa' : 'Desabilitada'}
