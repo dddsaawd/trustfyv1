@@ -288,7 +288,12 @@ const Vendas = () => {
                             {o.payment_status === 'approved' ? 'Aprovado' : o.payment_status === 'pending' ? 'Pendente' : o.payment_status === 'refused' ? 'Recusado' : o.payment_status === 'refunded' ? 'Reembolso' : 'Chargeback'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground capitalize">{o.payment_method === 'credit_card' ? 'Cartão' : o.payment_method}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {o.payment_method === 'credit_card' ? '💳 Cartão' : o.payment_method === 'pix' ? '⚡ Pix' : o.payment_method === 'boleto' ? '📄 Boleto' : o.payment_method}
+                        </TableCell>
+                        <TableCell className="text-xs text-center text-muted-foreground">
+                          {o.payment_method === 'credit_card' ? `${o.installments || 1}x` : '—'}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {filtered.length === 0 && (
