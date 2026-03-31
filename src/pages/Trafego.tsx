@@ -19,8 +19,12 @@ import { toast } from 'sonner';
 import {
   Globe, Search, Music, Video, RefreshCw, Loader2, Inbox,
   CheckCircle, Settings, TrendingUp, TrendingDown, ChevronDown,
-  LayoutGrid, Layers, FileText, MonitorPlay, HelpCircle, Info
+  LayoutGrid, Layers, FileText, MonitorPlay, HelpCircle, Info,
+  BarChart3, ArrowUp, ExternalLink, Copy, Pin, Filter, Trash2,
+  Play, Pause, DollarSign, Target, MoreVertical
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const PLATFORMS = [
   { id: 'meta', label: 'Meta', icon: Globe, color: 'bg-blue-600' },
@@ -41,6 +45,9 @@ const Trafego = () => {
   const [syncing, setSyncing] = useState(false);
   const [editingBudget, setEditingBudget] = useState<string | null>(null);
   const [budgetValue, setBudgetValue] = useState('');
+  const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
+  const [bulkBudgetOpen, setBulkBudgetOpen] = useState(false);
+  const [bulkBudgetValue, setBulkBudgetValue] = useState('');
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -198,6 +205,71 @@ const Trafego = () => {
     refetch();
   }, [budgetValue, refetch]);
 
+  const toggleSelectCampaign = useCallback((id: string) => {
+    setSelectedCampaigns(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedCampaigns.length === filteredCampaigns.length) {
+      setSelectedCampaigns([]);
+    } else {
+      setSelectedCampaigns(filteredCampaigns.map(c => c.id));
+    }
+  }, [selectedCampaigns, filteredCampaigns]);
+
+  const bulkActivate = useCallback(async () => {
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').update({ status: 'active' }).eq('id', id);
+    }
+    toast.success(`${selectedCampaigns.length} campanhas ativadas`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, refetch]);
+
+  const bulkPause = useCallback(async () => {
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').update({ status: 'paused' }).eq('id', id);
+    }
+    toast.success(`${selectedCampaigns.length} campanhas pausadas`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, refetch]);
+
+  const bulkUpdateBudget = useCallback(async () => {
+    const value = parseFloat(bulkBudgetValue.replace(',', '.'));
+    if (isNaN(value) || value < 0) { toast.error('Valor inválido'); return; }
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').update({ budget_daily: value }).eq('id', id);
+    }
+    toast.success(`Orçamento atualizado para ${selectedCampaigns.length} campanhas`);
+    setBulkBudgetOpen(false);
+    setBulkBudgetValue('');
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, bulkBudgetValue, refetch]);
+
+  const bulkDelete = useCallback(async () => {
+    if (!confirm(`Excluir ${selectedCampaigns.length} campanhas?`)) return;
+    for (const id of selectedCampaigns) {
+      await supabase.from('campaigns').delete().eq('id', id);
+    }
+    toast.success(`${selectedCampaigns.length} campanhas excluídas`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, refetch]);
+
+  const copySelectedIds = useCallback(() => {
+    const ids = selectedCampaigns.join(', ');
+    navigator.clipboard.writeText(ids);
+    toast.success('IDs copiados para a área de transferência');
+  }, [selectedCampaigns]);
+
+  const filterSelected = useCallback(() => {
+    const names = filteredCampaigns.filter(c => selectedCampaigns.includes(c.id)).map(c => c.name);
+    if (names.length > 0) setNameFilter(names[0]);
+    toast.info('Filtro aplicado');
+  }, [selectedCampaigns, filteredCampaigns]);
+
   const timeSinceUpdate = dataUpdatedAt
     ? `Atualizado ${Math.round((Date.now() - dataUpdatedAt) / 60000)} min atrás`
     : '';
@@ -314,12 +386,72 @@ const Trafego = () => {
 
             {/* ===== CAMPANHAS TAB ===== */}
             <TabsContent value="campanhas" className="mt-4 space-y-4">
-              {/* Tracked badge + Sync */}
+              {/* Toolbar */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30 gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8"><Settings className="h-3.5 w-3.5" /></Button>
+                  </TooltipTrigger><TooltipContent>Configurações</TooltipContent></Tooltip>
+
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8"><ArrowUp className="h-3.5 w-3.5" /></Button>
+                  </TooltipTrigger><TooltipContent>Ordenar</TooltipContent></Tooltip>
+
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8"><BarChart3 className="h-3.5 w-3.5" /></Button>
+                  </TooltipTrigger><TooltipContent>Gráfico</TooltipContent></Tooltip>
+
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                    <ExternalLink className="h-3.5 w-3.5" /> Abrir no gerenciador
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8"><ChevronDown className="h-3.5 w-3.5" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-52">
+                      <DropdownMenuItem onClick={() => toast.info('Gráfico comparativo em breve')}>
+                        <BarChart3 className="h-4 w-4 mr-2" /> Gráfico comparativo
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={bulkActivate} disabled={selectedCampaigns.length === 0}>
+                        <Play className="h-4 w-4 mr-2" /> Ativar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={bulkPause} disabled={selectedCampaigns.length === 0}>
+                        <Pause className="h-4 w-4 mr-2" /> Desativar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { if (selectedCampaigns.length === 0) { toast.error('Selecione campanhas'); return; } setBulkBudgetOpen(true); }} disabled={selectedCampaigns.length === 0}>
+                        <DollarSign className="h-4 w-4 mr-2" /> Alterar orçamento
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast.info('Bid cap em breve')} disabled={selectedCampaigns.length === 0}>
+                        <Target className="h-4 w-4 mr-2" /> Alterar bid cap
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => toast.info('Fixar em breve')}>
+                        <Pin className="h-4 w-4 mr-2" /> Fixar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copySelectedIds} disabled={selectedCampaigns.length === 0}>
+                        <Copy className="h-4 w-4 mr-2" /> Copiar ID
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={filterSelected} disabled={selectedCampaigns.length === 0}>
+                        <Filter className="h-4 w-4 mr-2" /> Filtrar selecionadas
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={bulkDelete} disabled={selectedCampaigns.length === 0} className="text-destructive focus:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30 gap-1 ml-2">
                     <CheckCircle className="h-3 w-3" /> Todas as vendas trackeadas
                   </Badge>
+
+                  {selectedCampaigns.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] gap-1 ml-1">
+                      {selectedCampaigns.length} selecionada{selectedCampaigns.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] text-muted-foreground">{timeSinceUpdate}</span>
@@ -394,7 +526,7 @@ const Trafego = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
-                          <TableHead className="text-[10px] w-8"><Checkbox className="h-3.5 w-3.5" /></TableHead>
+                          <TableHead className="text-[10px] w-8"><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.length === filteredCampaigns.length && filteredCampaigns.length > 0} onCheckedChange={toggleSelectAll} /></TableHead>
                           <TableHead className="text-[10px] w-14">STATUS</TableHead>
                           <TableHead className="text-[10px]">CAMPANHA</TableHead>
                           <TableHead className="text-[10px] text-right">ORÇAMENTO</TableHead>
@@ -427,7 +559,7 @@ const Trafego = () => {
                             const roi = spend > 0 ? (pft / spend) * 100 : 0;
                             return (
                               <TableRow key={c.id} className="border-border">
-                                <TableCell><Checkbox className="h-3.5 w-3.5" /></TableCell>
+                                <TableCell><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.includes(c.id)} onCheckedChange={() => toggleSelectCampaign(c.id)} /></TableCell>
                                 <TableCell>
                                   <Switch
                                     checked={c.status === 'active'}
@@ -514,6 +646,30 @@ const Trafego = () => {
                 <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
                 <span className="text-[10px] text-muted-foreground/60">Por que as campanhas não estão aparecendo?</span>
               </div>
+
+              {/* Bulk Budget Dialog */}
+              <Dialog open={bulkBudgetOpen} onOpenChange={setBulkBudgetOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-sm">Alterar orçamento ({selectedCampaigns.length} campanhas)</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 py-2">
+                    <label className="text-xs text-muted-foreground">Novo orçamento diário (R$)</label>
+                    <Input
+                      autoFocus
+                      value={bulkBudgetValue}
+                      onChange={e => setBulkBudgetValue(e.target.value)}
+                      placeholder="Ex: 50.00"
+                      className="h-9 text-sm"
+                      onKeyDown={e => { if (e.key === 'Enter') bulkUpdateBudget(); }}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" size="sm" onClick={() => setBulkBudgetOpen(false)}>Cancelar</Button>
+                    <Button size="sm" onClick={bulkUpdateBudget}>Salvar</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* ===== CONJUNTOS TAB ===== */}
