@@ -695,9 +695,6 @@ const Trafego = () => {
                                     </span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-xs text-right tabular-nums text-muted-foreground">
-                                  {new Date(c.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                </TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{conv}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{conv > 0 ? fmt(cpa, cur) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{fmt(spend, cur)}</TableCell>
