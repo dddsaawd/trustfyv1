@@ -123,15 +123,18 @@ const Trafego = () => {
 
   const isConnected = integration?.status === 'connected';
 
+  const statusOrder: Record<string, number> = { active: 0, paused: 1, ended: 2 };
+
   const filteredCampaigns = useMemo(() => {
     if (!campaigns) return [];
-    return campaigns.filter(c => {
-      // If accounts are selected, only show campaigns from those accounts
-      if (activeAccountIds.length > 0 && !activeAccountIds.includes(c.ad_account_id || '')) return false;
-      if (nameFilter && !c.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
-      if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-      return true;
-    });
+    return campaigns
+      .filter(c => {
+        if (activeAccountIds.length > 0 && !activeAccountIds.includes(c.ad_account_id || '')) return false;
+        if (nameFilter && !c.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
+        if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
   }, [campaigns, nameFilter, statusFilter, activeAccountIds]);
 
   // Aggregated totals
