@@ -256,9 +256,9 @@ export function useDashboardData(): DashboardData {
 
   const warModeKPIs = [
     { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0 },
-    { label: 'Vendas', value: `${m.approvedCount}`, change: pm ? calcChange(m.approvedCount, pm.approvedCount) : 0 },
+    { label: 'Vendas Aprovadas', value: `${m.approvedCount}`, change: pm ? calcChange(m.approvedCount, pm.approvedCount) : 0 },
     { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0 },
-    { label: 'Pix Pendente', value: `R$ ${fmt(pixPendingTotal)}`, change: 0 },
+    { label: 'Total Pago no Dia', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0 },
   ];
 
   return {
