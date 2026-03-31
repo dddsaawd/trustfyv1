@@ -33,7 +33,11 @@ const PLATFORMS = [
   { id: 'tiktok', label: 'TikTok', icon: Music, color: 'bg-foreground' },
 ];
 
-const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmt = (v: number, currency = 'BRL') => {
+  const symbols: Record<string, string> = { BRL: 'R$', USD: '$', EUR: '€', GBP: '£', AUD: 'A$', CAD: 'C$' };
+  const sym = symbols[currency] || currency + ' ';
+  return `${sym} ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 const Trafego = () => {
