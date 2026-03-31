@@ -658,6 +658,7 @@ const Trafego = () => {
                             const cpa = Number(c.cpa || 0);
                             const margin = rev > 0 ? (pft / rev) * 100 : 0;
                             const roi = spend > 0 ? (pft / spend) * 100 : 0;
+                            const cur = accountCurrencyMap[c.ad_account_id || ''] || 'BRL';
                             return (
                               <TableRow key={c.id} className="border-border">
                                 <TableCell><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.includes(c.id)} onCheckedChange={() => toggleSelectCampaign(c.id)} /></TableCell>
@@ -688,7 +689,7 @@ const Trafego = () => {
                                         <Pencil className="h-3 w-3 text-muted-foreground hover:text-primary" />
                                       </button>
                                       <span>
-                                        {fmt(Number(c.budget_daily || 0))}
+                                        {fmt(Number(c.budget_daily || 0), cur)}
                                         <span className="text-[9px] text-muted-foreground block">Diário</span>
                                       </span>
                                     </span>
@@ -698,16 +699,16 @@ const Trafego = () => {
                                   {new Date(c.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{conv}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{conv > 0 ? fmt(cpa) : 'N/A'}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(spend)}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(rev)}</TableCell>
-                                <TableCell className={cn('text-xs text-right tabular-nums font-medium', pft >= 0 ? 'text-success' : 'text-destructive')}>{fmt(pft)}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{conv > 0 ? fmt(cpa, cur) : 'N/A'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(spend, cur)}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(rev, cur)}</TableCell>
+                                <TableCell className={cn('text-xs text-right tabular-nums font-medium', pft >= 0 ? 'text-success' : 'text-destructive')}>{fmt(pft, cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{roas > 0 ? `${roas.toFixed(2)}x` : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{rev > 0 ? fmtPct(margin) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{spend > 0 ? fmtPct(roi) : 'N/A'}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0), cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.ctr || 0) > 0 ? fmtPct(Number(c.ctr || 0)) : '0,00%'}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0), cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.impressions || 0).toLocaleString('pt-BR')}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.clicks || 0).toLocaleString('pt-BR')}</TableCell>
                               </TableRow>
