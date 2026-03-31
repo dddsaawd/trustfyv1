@@ -20,6 +20,7 @@ interface CostSettings {
   gateway_provider: string;
   gateway_fee_percent: number;
   gateway_fee_fixed: number;
+  gateway_pix_fixed: number;
   gateway_pix_percent: number;
   gateway_card_percent: number;
   avg_shipping: number;
