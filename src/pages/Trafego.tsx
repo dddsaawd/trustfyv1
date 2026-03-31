@@ -609,7 +609,7 @@ const Trafego = () => {
                             { key: 'status', label: 'STATUS', align: 'left', w: 'w-14' },
                             { key: 'name', label: 'CAMPANHA', align: 'left' },
                             { key: 'budget_daily', label: 'ORÇAMENTO', align: 'right' },
-                            { key: 'updated_at', label: 'ÚLT. ATUALIZAÇÃO', align: 'right' },
+                            
                             { key: 'conversions', label: 'VENDAS', align: 'right' },
                             { key: 'cpa', label: 'CPA', align: 'right', info: true },
                             { key: 'spend', label: 'GASTOS', align: 'right' },
