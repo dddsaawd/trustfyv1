@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { user_id } = await req.json()
+    const { user_id, date_preset } = await req.json()
+    const metaDatePreset = date_preset || 'today'
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'Missing user_id' }), {
