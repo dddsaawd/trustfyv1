@@ -724,32 +724,39 @@ const Trafego = () => {
                             </TableCell>
                           </TableRow>
                         )}
-                        {/* Totals row */}
-                        <TableRow className="border-border bg-secondary/30 font-medium">
-                          <TableCell></TableCell>
-                          <TableCell className="text-[10px] text-muted-foreground">N/A</TableCell>
-                          <TableCell className="text-[10px]">{totals.count} CAMPANHAS</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(0)}</TableCell>
-                          
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.conversions}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.conversions > 0 ? fmt(totals.cpa) : 'N/A'}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend)}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.revenue)}</TableCell>
-                          <TableCell className={cn('text-[10px] text-right tabular-nums font-medium', totals.profit >= 0 ? 'text-success' : 'text-destructive')}>{fmt(totals.profit)}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.roas > 0 ? `${totals.roas.toFixed(2)}x` : 'N/A'}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.revenue > 0 ? fmtPct(totals.margin) : 'N/A'}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.spend > 0 ? fmtPct(totals.roi) : 'N/A'}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{filteredCampaigns.reduce((s, c) => s + Number((c as any).initiate_checkout || 0), 0)}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">N/A</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend > 0 && totals.clicks > 0 ? totals.spend / totals.clicks : 0)}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions > 0 ? fmtPct((totals.clicks / totals.impressions) * 100) : '0,0%'}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0)}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions.toLocaleString('pt-BR')}</TableCell>
-                          <TableCell className="text-[10px] text-right tabular-nums">{totals.clicks.toLocaleString('pt-BR')}</TableCell>
-                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
+                  {/* Sticky Totals Footer Bar */}
+                  {filteredCampaigns.length > 0 && (
+                    <div className="border-t border-border bg-secondary/40 backdrop-blur-sm overflow-x-auto">
+                      <Table>
+                        <TableBody>
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell className="w-8"></TableCell>
+                            <TableCell className="text-[10px] text-muted-foreground w-14">—</TableCell>
+                            <TableCell className="text-[10px] font-semibold">Resultados de {totals.count} campanhas</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(filteredCampaigns.reduce((s, c) => s + Number(c.budget_daily || 0), 0))}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.conversions}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.conversions > 0 ? fmt(totals.cpa) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(totals.spend)}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{fmt(totals.revenue)}</TableCell>
+                            <TableCell className={cn('text-[10px] text-right tabular-nums font-bold', totals.profit >= 0 ? 'text-success' : 'text-destructive')}>{fmt(totals.profit)}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.roas > 0 ? `${totals.roas.toFixed(2)}x` : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.revenue > 0 ? fmtPct(totals.margin) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.spend > 0 ? fmtPct(totals.roi) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{filteredCampaigns.reduce((s, c) => s + Number((c as any).initiate_checkout || 0), 0)}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">—</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.clicks > 0 ? fmt(totals.spend / totals.clicks) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions > 0 ? fmtPct((totals.clicks / totals.impressions) * 100) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions > 0 ? fmt((totals.spend / totals.impressions) * 1000) : '—'}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.impressions.toLocaleString('pt-BR')}</TableCell>
+                            <TableCell className="text-[10px] text-right tabular-nums font-semibold">{totals.clicks.toLocaleString('pt-BR')}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
