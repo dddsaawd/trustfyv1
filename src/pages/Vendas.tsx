@@ -263,6 +263,7 @@ const Vendas = () => {
                       <TableHead className="text-[11px] text-right">Lucro Líq.</TableHead>
                       <TableHead className="text-[11px] text-center">Status</TableHead>
                       <TableHead className="text-[11px]">Método</TableHead>
+                      <TableHead className="text-[11px] text-center">Parcelas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
