@@ -103,6 +103,7 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
       prevStart = `${getBrazilDate(p365Start)}T00:00:00-03:00`;
       prevEnd = `${getBrazilDate(p365End)}T23:59:59-03:00`;
       break;
+    }
     case 'custom': {
       const cs = filters.customStart || now;
       const ce = filters.customEnd || now;
