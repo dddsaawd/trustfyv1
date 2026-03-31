@@ -235,21 +235,21 @@ const Trafego = () => {
                         size="sm"
                         variant="outline"
                         className="h-7 text-[10px]"
-                        onClick={() => toggleAllAccountsPlaceholder(adAccounts.map(a => a.id))}
+                        onClick={() => toggleAllAccounts(true)}
                       >
-                        Selecionar Todas
+                        Ativar Todas
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-7 text-[10px]"
-                        onClick={() => toggleAllAccountsPlaceholder([])}
+                        onClick={() => toggleAllAccounts(false)}
                       >
-                        Limpar
+                        Desativar Todas
                       </Button>
                       {activeAccountIds.length > 0 && (
                         <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
-                          {activeAccountIds.length} conta{activeAccountIds.length > 1 ? 's' : ''} selecionada{activeAccountIds.length > 1 ? 's' : ''}
+                          {activeAccountIds.length} conta{activeAccountIds.length > 1 ? 's' : ''} ativa{activeAccountIds.length > 1 ? 's' : ''}
                         </Badge>
                       )}
                     </div>
@@ -258,21 +258,15 @@ const Trafego = () => {
                   {/* Account Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {adAccounts.map(acc => {
-                      const isSelected = activeAccountIds.includes(acc.id);
+                      const isActive = acc.active;
                       return (
                         <Card
                           key={acc.id}
                           className={cn(
                             'border-border cursor-pointer transition-all hover:border-primary/40',
-                            isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                            isActive && 'border-primary bg-primary/5 ring-1 ring-primary/20'
                           )}
-                          onClick={() => {
-                            toggleAllAccountsPlaceholder(prev =>
-                              prev.includes(acc.id)
-                                ? prev.filter(id => id !== acc.id)
-                                : [...prev, acc.id]
-                            );
-                          }}
+                          onClick={() => toggleAccountActive(acc.id, acc.active)}
                         >
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
