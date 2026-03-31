@@ -193,7 +193,6 @@ const ModoGuerra = () => {
   }, [orders]);
 
   const handleExit = () => {
-    document.exitFullscreen?.().catch(() => {});
     navigate('/');
   };
 
