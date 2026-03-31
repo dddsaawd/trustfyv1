@@ -602,7 +602,7 @@ const Trafego = () => {
               {/* Campaigns Table */}
               <Card className="border-border">
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto max-h-[60vh] overflow-y-auto relative">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
