@@ -16,6 +16,7 @@ interface WebhookOrder {
   gross_value: number
   payment_method?: 'pix' | 'credit_card' | 'boleto' | 'debit'
   payment_status?: 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'
+  installments?: number
   gateway_fee?: number
   shipping_cost?: number
   tax?: number
