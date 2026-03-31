@@ -16,6 +16,7 @@ interface WebhookOrder {
   gross_value: number
   payment_method?: 'pix' | 'credit_card' | 'boleto' | 'debit'
   payment_status?: 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'
+  installments?: number
   gateway_fee?: number
   shipping_cost?: number
   tax?: number
@@ -335,9 +336,36 @@ Deno.serve(async (req) => {
 
         // Use webhook values if provided, otherwise calculate from cost_settings
         const productCost = order.product_cost ?? 0
-        const gatewayFee = order.gateway_fee ?? (costSettings
-          ? (grossValue * costSettings.gateway_fee_percent / 100) + costSettings.gateway_fee_fixed
-          : 0)
+        const installments = order.installments ?? 1
+        const paymentMethod = order.payment_method || 'pix'
+        
+        // Calculate gateway fee based on payment method and installments
+        let gatewayFee = order.gateway_fee ?? 0
+        if (order.gateway_fee == null && costSettings) {
+          if (paymentMethod === 'credit_card' && installments >= 2) {
+            // Fetch installment rate
+            const { data: instRate } = await supabase
+              .from('installment_rates')
+              .select('rate_percent')
+              .eq('user_id', userId)
+              .eq('installments', installments)
+              .single()
+            if (instRate) {
+              gatewayFee = grossValue * Number(instRate.rate_percent) / 100
+            } else {
+              gatewayFee = (grossValue * (costSettings as any).gateway_card_percent / 100) + costSettings.gateway_fee_fixed
+            }
+          } else if (paymentMethod === 'credit_card') {
+            gatewayFee = (grossValue * ((costSettings as any).gateway_card_percent || costSettings.gateway_fee_percent) / 100) + costSettings.gateway_fee_fixed
+          } else if (paymentMethod === 'pix') {
+            gatewayFee = (grossValue * ((costSettings as any).gateway_pix_percent || 0) / 100) + ((costSettings as any).gateway_pix_fixed || 0)
+          } else if (paymentMethod === 'boleto') {
+            gatewayFee = costSettings.boleto_fee || 0
+          } else {
+            gatewayFee = (grossValue * costSettings.gateway_fee_percent / 100) + costSettings.gateway_fee_fixed
+          }
+        }
+        
         const shippingCost = order.shipping_cost ?? (costSettings?.avg_shipping ?? 0)
         const tax = order.tax ?? (costSettings
           ? grossValue * costSettings.tax_percent / 100
@@ -352,7 +380,8 @@ Deno.serve(async (req) => {
             .from('orders')
             .update({
               payment_status: order.payment_status || 'pending',
-              payment_method: order.payment_method || 'pix',
+              payment_method: paymentMethod,
+              installments: installments,
               gross_value: grossValue,
               product_cost: productCost,
               gateway_fee: gatewayFee,
@@ -409,7 +438,8 @@ Deno.serve(async (req) => {
             tax: tax,
             net_profit: netProfit,
             payment_status: order.payment_status || (event === 'order.paid' ? 'approved' : 'pending'),
-            payment_method: order.payment_method || 'pix',
+            payment_method: paymentMethod,
+            installments: installments,
             platform: order.platform || null,
             campaign_name: order.campaign_name || null,
             utm_source: order.utm_source || null,

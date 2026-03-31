@@ -12,9 +12,10 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Save, Loader2, Info, CreditCard, Truck, Receipt, PiggyBank, Percent, DollarSign, ChevronDown } from 'lucide-react';
+import { Save, Loader2, Info, CreditCard, Truck, Receipt, PiggyBank, Percent, DollarSign, ChevronDown, Layers } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface CostSettings {
   gateway_provider: string;
@@ -96,11 +97,17 @@ const Configuracoes = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
+  const [installmentRates, setInstallmentRates] = useState<Record<number, number>>({
+    2: 11.89, 3: 13.29, 4: 14.74, 5: 15.97, 6: 16.65,
+    7: 16.99, 8: 17.01, 9: 17.99, 10: 18.01, 11: 18.99, 12: 23.99,
+  });
+  const [showInstallments, setShowInstallments] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchCosts();
       fetchProducts();
+      fetchInstallmentRates();
     }
   }, [user]);
 
@@ -143,6 +150,37 @@ const Configuracoes = () => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     if (data) setProducts(data);
+  };
+
+  const fetchInstallmentRates = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('installment_rates' as any)
+      .select('installments, rate_percent')
+      .eq('user_id', user.id);
+    if (data && (data as any[]).length > 0) {
+      const rates: Record<number, number> = {};
+      for (const r of data as any[]) {
+        rates[r.installments] = Number(r.rate_percent);
+      }
+      setInstallmentRates(prev => ({ ...prev, ...rates }));
+    }
+  };
+
+  const saveInstallmentRates = async () => {
+    if (!user) return;
+    const rows = Object.entries(installmentRates).map(([inst, rate]) => ({
+      user_id: user.id,
+      installments: Number(inst),
+      rate_percent: rate,
+    }));
+    const { error } = await (supabase.from('installment_rates' as any) as any)
+      .upsert(rows, { onConflict: 'user_id,installments' });
+    if (error) {
+      toast.error('Erro ao salvar parcelas: ' + error.message);
+    } else {
+      toast.success('Taxas de parcelamento salvas!');
+    }
   };
 
   const saveCosts = async () => {
@@ -289,6 +327,41 @@ const Configuracoes = () => {
                   value={costs.antecipation_fee_percent}
                   onChange={(v) => updateCost('antecipation_fee_percent', v)}
                 />
+                <Separator />
+                <Dialog open={showInstallments} onOpenChange={setShowInstallments}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 h-8">
+                      <Layers className="h-3.5 w-3.5" />
+                      Taxas no Cartão por Parcela
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">Taxas no cartão</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-3 gap-3 pt-2">
+                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                        <div key={n} className="bg-secondary rounded-lg p-3 text-center space-y-1.5">
+                          <p className="text-[10px] text-muted-foreground font-medium">{n}x</p>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={installmentRates[n] ?? 0}
+                              onChange={(e) => setInstallmentRates(prev => ({ ...prev, [n]: parseFloat(e.target.value) || 0 }))}
+                              className="h-7 text-xs text-center bg-background pr-6"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button size="sm" className="text-xs mt-2" onClick={saveInstallmentRates}>
+                      <Save className="h-3.5 w-3.5 mr-1" />
+                      Salvar Parcelas
+                    </Button>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 
