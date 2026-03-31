@@ -425,6 +425,9 @@ const Trafego = () => {
                       <DropdownMenuItem onClick={() => toast.info('Gráfico comparativo em breve')}>
                         <BarChart3 className="h-4 w-4 mr-2" /> Gráfico comparativo
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={duplicateSelected} disabled={selectedCampaigns.length === 0}>
+                        <Copy className="h-4 w-4 mr-2" /> Duplicar campanha
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={bulkActivate} disabled={selectedCampaigns.length === 0}>
                         <Play className="h-4 w-4 mr-2" /> Ativar
