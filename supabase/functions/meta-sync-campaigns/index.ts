@@ -77,15 +77,7 @@ Deno.serve(async (req) => {
     const activeAccountIds = new Set((activeDbAccounts || []).map((account) => account.account_id))
     const accountsToSync = adAccounts.filter((account: any) => activeAccountIds.has(account.id.replace('act_', '')))
 
-    // Zero out spend for all campaigns of active accounts before syncing new period data
-    const activeAccountUuids = (activeDbAccounts || []).map((a) => a.id)
-    if (activeAccountUuids.length > 0) {
-      await supabase
-        .from('campaigns')
-        .update({ spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, profit: 0, roas: 0, cpa: 0, cpc: 0, cpm: 0, ctr: 0, initiate_checkout: 0, cost_per_ic: 0 })
-        .eq('user_id', user_id)
-        .in('ad_account_id', activeAccountUuids)
-    }
+    // We'll zero out per-account ONLY after confirming the API responds successfully
 
     for (const account of accountsToSync) {
       const actId = account.id
