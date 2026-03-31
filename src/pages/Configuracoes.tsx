@@ -222,7 +222,8 @@ const Configuracoes = () => {
                           gateway_provider: v,
                           gateway_pix_percent: preset.pix,
                           gateway_card_percent: preset.card,
-                          gateway_fee_fixed: preset.fixed,
+                          gateway_fee_fixed: preset.cardFixed,
+                          gateway_pix_fixed: preset.pixFixed,
                           boleto_fee: preset.boleto,
                           gateway_fee_percent: preset.card,
                         }));
