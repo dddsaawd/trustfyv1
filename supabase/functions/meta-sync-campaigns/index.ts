@@ -70,6 +70,17 @@ Deno.serve(async (req) => {
 
     for (const account of adAccounts) {
       const actId = account.id // format: act_XXXXX
+      const accountNumericId = actId.replace('act_', '')
+
+      // Find matching ad_account row to get its UUID
+      const { data: adAccountRow } = await supabase
+        .from('ad_accounts')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('account_id', accountNumericId)
+        .maybeSingle()
+
+      const adAccountUuid = adAccountRow?.id || null
 
       // Fetch campaigns with insights
       const campaignsRes = await fetch(
@@ -114,13 +125,14 @@ Deno.serve(async (req) => {
         if (campaign.status === 'ACTIVE') status = 'active'
         else if (campaign.status === 'ARCHIVED' || campaign.status === 'DELETED') status = 'ended'
 
-        // Upsert campaign
+        // Upsert campaign with ad_account_id
         const { error } = await supabase
           .from('campaigns')
           .upsert({
             user_id: user_id,
             name: campaign.name,
             platform: 'meta',
+            ad_account_id: adAccountUuid,
             status,
             budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
             spend,
