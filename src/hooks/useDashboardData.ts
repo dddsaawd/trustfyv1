@@ -226,6 +226,7 @@ export function useDashboardData(): DashboardData {
   const { start, end, prevStart, prevEnd } = useMemo(() => getDateRange(filters), [filters]);
   const changeLabel = changeLabelMap[filters.dateRange];
   const lastSyncKeyRef = useRef<string>('');
+  const [adsSyncReady, setAdsSyncReady] = useState(false);
 
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ['dashboard-orders', start, end],
