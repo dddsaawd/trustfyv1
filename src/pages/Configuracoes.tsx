@@ -34,14 +34,14 @@ interface CostSettings {
   antecipation_fee_percent: number;
 }
 
-const GATEWAY_PRESETS: Record<string, { label: string; pix: number; card: number; fixed: number; boleto: number }> = {
-  'pagar_me': { label: 'Pagar.me', pix: 1.19, card: 4.99, fixed: 0.39, boleto: 3.49 },
-  'mercado_pago': { label: 'Mercado Pago', pix: 0.99, card: 4.98, fixed: 0, boleto: 3.49 },
-  'pagseguro': { label: 'PagSeguro', pix: 0.99, card: 4.99, fixed: 0, boleto: 3.49 },
-  'stripe': { label: 'Stripe', pix: 0, card: 3.99, fixed: 0.39, boleto: 0 },
-  'appmax': { label: 'Appmax', pix: 0.99, card: 4.79, fixed: 0, boleto: 2.99 },
-  'yampi': { label: 'Yampi Pay', pix: 0.99, card: 4.49, fixed: 0, boleto: 3.49 },
-  'custom': { label: 'Personalizado', pix: 0, card: 4.99, fixed: 0, boleto: 3.49 },
+const GATEWAY_PRESETS: Record<string, { label: string; pix: number; card: number; pixFixed: number; cardFixed: number; boleto: number }> = {
+  'pagar_me': { label: 'Pagar.me', pix: 1.19, card: 4.99, pixFixed: 0, cardFixed: 0.39, boleto: 3.49 },
+  'mercado_pago': { label: 'Mercado Pago', pix: 0.99, card: 4.98, pixFixed: 0, cardFixed: 0, boleto: 3.49 },
+  'pagseguro': { label: 'PagSeguro', pix: 0.99, card: 4.99, pixFixed: 0, cardFixed: 0, boleto: 3.49 },
+  'stripe': { label: 'Stripe', pix: 0, card: 3.99, pixFixed: 0, cardFixed: 0.39, boleto: 0 },
+  'appmax': { label: 'Appmax', pix: 0.99, card: 4.79, pixFixed: 0, cardFixed: 0, boleto: 2.99 },
+  'yampi': { label: 'Yampi Pay', pix: 0.99, card: 4.49, pixFixed: 0, cardFixed: 0, boleto: 3.49 },
+  'custom': { label: 'Personalizado', pix: 0, card: 4.99, pixFixed: 0, cardFixed: 0, boleto: 3.49 },
 };
 
 const defaultCosts: CostSettings = {
