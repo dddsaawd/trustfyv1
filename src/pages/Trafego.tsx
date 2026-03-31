@@ -20,8 +20,8 @@ import {
   Globe, Search, Music, Video, RefreshCw, Loader2, Inbox,
   CheckCircle, Settings, TrendingUp, TrendingDown, ChevronDown,
   LayoutGrid, Layers, FileText, MonitorPlay, HelpCircle, Info,
-  BarChart3, ArrowUp, ExternalLink, Copy, Pin, Filter, Trash2,
-  Play, Pause, DollarSign, Target, MoreVertical
+  BarChart3, ArrowUp, ArrowUpDown, ExternalLink, Copy, Pin, Filter, Trash2,
+  Play, Pause, DollarSign, Target, MoreVertical, ArrowDownUp
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -48,6 +48,8 @@ const Trafego = () => {
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [bulkBudgetOpen, setBulkBudgetOpen] = useState(false);
   const [bulkBudgetValue, setBulkBudgetValue] = useState('');
+  const [sortColumn, setSortColumn] = useState<string>('status');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -125,6 +127,38 @@ const Trafego = () => {
 
   const statusOrder: Record<string, number> = { active: 0, paused: 1, ended: 2 };
 
+  const toggleSort = useCallback((col: string) => {
+    if (sortColumn === col) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDirection('desc');
+    }
+  }, [sortColumn]);
+
+  const getSortValue = (c: any, col: string): number | string => {
+    switch (col) {
+      case 'status': return statusOrder[c.status] ?? 99;
+      case 'name': return c.name?.toLowerCase() || '';
+      case 'budget_daily': return Number(c.budget_daily || 0);
+      case 'updated_at': return new Date(c.updated_at).getTime();
+      case 'conversions': return Number(c.conversions || 0);
+      case 'cpa': return Number(c.cpa || 0);
+      case 'spend': return Number(c.spend || 0);
+      case 'revenue': return Number(c.revenue || 0);
+      case 'profit': return Number(c.profit || 0);
+      case 'roas': return Number(c.roas || 0);
+      case 'margin': { const rev = Number(c.revenue || 0); const pft = Number(c.profit || 0); return rev > 0 ? pft / rev : 0; }
+      case 'roi': { const sp = Number(c.spend || 0); const pf = Number(c.profit || 0); return sp > 0 ? pf / sp : 0; }
+      case 'cpc': return Number(c.cpc || 0);
+      case 'ctr': return Number(c.ctr || 0);
+      case 'cpm': return Number(c.cpm || 0);
+      case 'impressions': return Number(c.impressions || 0);
+      case 'clicks': return Number(c.clicks || 0);
+      default: return 0;
+    }
+  };
+
   const filteredCampaigns = useMemo(() => {
     if (!campaigns) return [];
     return campaigns
@@ -134,8 +168,13 @@ const Trafego = () => {
         if (statusFilter !== 'all' && c.status !== statusFilter) return false;
         return true;
       })
-      .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
-  }, [campaigns, nameFilter, statusFilter, activeAccountIds]);
+      .sort((a, b) => {
+        const aVal = getSortValue(a, sortColumn);
+        const bVal = getSortValue(b, sortColumn);
+        const cmp = typeof aVal === 'string' ? aVal.localeCompare(bVal as string) : (aVal as number) - (bVal as number);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      });
+  }, [campaigns, nameFilter, statusFilter, activeAccountIds, sortColumn, sortDirection]);
 
   // Aggregated totals
   const totals = useMemo(() => {
@@ -555,23 +594,46 @@ const Trafego = () => {
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
                           <TableHead className="text-[10px] w-8"><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.length === filteredCampaigns.length && filteredCampaigns.length > 0} onCheckedChange={toggleSelectAll} /></TableHead>
-                          <TableHead className="text-[10px] w-14">STATUS</TableHead>
-                          <TableHead className="text-[10px]">CAMPANHA</TableHead>
-                          <TableHead className="text-[10px] text-right">ORÇAMENTO</TableHead>
-                          <TableHead className="text-[10px] text-right">ÚLT. ATUALIZAÇÃO</TableHead>
-                          <TableHead className="text-[10px] text-right">VENDAS</TableHead>
-                          <TableHead className="text-[10px] text-right">CPA <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">GASTOS</TableHead>
-                          <TableHead className="text-[10px] text-right">FATURAMENTO</TableHead>
-                          <TableHead className="text-[10px] text-right">LUCRO <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">ROAS <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">MARGEM <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">ROI <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
-                          <TableHead className="text-[10px] text-right">CPC</TableHead>
-                          <TableHead className="text-[10px] text-right">CTR</TableHead>
-                          <TableHead className="text-[10px] text-right">CPM</TableHead>
-                          <TableHead className="text-[10px] text-right">IMPRESSÕES</TableHead>
-                          <TableHead className="text-[10px] text-right">CLIQUES</TableHead>
+                          {[
+                            { key: 'status', label: 'STATUS', align: 'left', w: 'w-14' },
+                            { key: 'name', label: 'CAMPANHA', align: 'left' },
+                            { key: 'budget_daily', label: 'ORÇAMENTO', align: 'right' },
+                            { key: 'updated_at', label: 'ÚLT. ATUALIZAÇÃO', align: 'right' },
+                            { key: 'conversions', label: 'VENDAS', align: 'right' },
+                            { key: 'cpa', label: 'CPA', align: 'right', info: true },
+                            { key: 'spend', label: 'GASTOS', align: 'right' },
+                            { key: 'revenue', label: 'FATURAMENTO', align: 'right' },
+                            { key: 'profit', label: 'LUCRO', align: 'right', info: true },
+                            { key: 'roas', label: 'ROAS', align: 'right', info: true },
+                            { key: 'margin', label: 'MARGEM', align: 'right', info: true },
+                            { key: 'roi', label: 'ROI', align: 'right', info: true },
+                            { key: 'cpc', label: 'CPC', align: 'right' },
+                            { key: 'ctr', label: 'CTR', align: 'right' },
+                            { key: 'cpm', label: 'CPM', align: 'right' },
+                            { key: 'impressions', label: 'IMPRESSÕES', align: 'right' },
+                            { key: 'clicks', label: 'CLIQUES', align: 'right' },
+                          ].map(col => (
+                            <TableHead
+                              key={col.key}
+                              className={cn(
+                                'text-[10px] cursor-pointer select-none hover:text-foreground transition-colors',
+                                col.align === 'right' && 'text-right',
+                                col.w,
+                                sortColumn === col.key && 'text-primary'
+                              )}
+                              onClick={() => toggleSort(col.key)}
+                            >
+                              <span className="inline-flex items-center gap-0.5">
+                                {col.label}
+                                {col.info && <Info className="h-3 w-3 text-muted-foreground/40" />}
+                                {sortColumn === col.key ? (
+                                  <ArrowUp className={cn('h-3 w-3 transition-transform', sortDirection === 'desc' && 'rotate-180')} />
+                                ) : (
+                                  <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />
+                                )}
+                              </span>
+                            </TableHead>
+                          ))}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
