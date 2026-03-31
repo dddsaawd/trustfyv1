@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, Megaphone, Package, Link2, DollarSign,
-  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp
+  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords
 } from 'lucide-react';
 import trustfyLogo from '@/assets/trustfy-logo.png';
 import { NavLink } from '@/components/NavLink';
