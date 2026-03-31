@@ -70,6 +70,7 @@ export type Database = {
           budget_daily: number | null
           clicks: number | null
           conversions: number | null
+          cost_per_ic: number | null
           cpa: number | null
           cpc: number | null
           cpm: number | null
@@ -77,6 +78,7 @@ export type Database = {
           ctr: number | null
           id: string
           impressions: number | null
+          initiate_checkout: number | null
           name: string
           platform: string
           profit: number | null
@@ -93,6 +95,7 @@ export type Database = {
           budget_daily?: number | null
           clicks?: number | null
           conversions?: number | null
+          cost_per_ic?: number | null
           cpa?: number | null
           cpc?: number | null
           cpm?: number | null
@@ -100,6 +103,7 @@ export type Database = {
           ctr?: number | null
           id?: string
           impressions?: number | null
+          initiate_checkout?: number | null
           name: string
           platform: string
           profit?: number | null
@@ -116,6 +120,7 @@ export type Database = {
           budget_daily?: number | null
           clicks?: number | null
           conversions?: number | null
+          cost_per_ic?: number | null
           cpa?: number | null
           cpc?: number | null
           cpm?: number | null
@@ -123,6 +128,7 @@ export type Database = {
           ctr?: number | null
           id?: string
           impressions?: number | null
+          initiate_checkout?: number | null
           name?: string
           platform?: string
           profit?: number | null

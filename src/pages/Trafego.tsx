@@ -166,6 +166,8 @@ const Trafego = () => {
       case 'cpm': return Number(c.cpm || 0);
       case 'impressions': return Number(c.impressions || 0);
       case 'clicks': return Number(c.clicks || 0);
+      case 'initiate_checkout': return Number((c as any).initiate_checkout || 0);
+      case 'cost_per_ic': return Number((c as any).cost_per_ic || 0);
       default: return 0;
     }
   };
@@ -618,6 +620,8 @@ const Trafego = () => {
                             { key: 'roas', label: 'ROAS', align: 'right', info: true },
                             { key: 'margin', label: 'MARGEM', align: 'right', info: true },
                             { key: 'roi', label: 'ROI', align: 'right', info: true },
+                            { key: 'initiate_checkout', label: 'IC', align: 'right' },
+                            { key: 'cost_per_ic', label: 'CPI', align: 'right' },
                             { key: 'cpc', label: 'CPC', align: 'right' },
                             { key: 'ctr', label: 'CTR', align: 'right' },
                             { key: 'cpm', label: 'CPM', align: 'right' },
@@ -703,6 +707,8 @@ const Trafego = () => {
                                 <TableCell className="text-xs text-right tabular-nums">{roas > 0 ? `${roas.toFixed(2)}x` : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{rev > 0 ? fmtPct(margin) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{spend > 0 ? fmtPct(roi) : 'N/A'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number((c as any).initiate_checkout || 0)}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number((c as any).cost_per_ic || 0) > 0 ? fmt(Number((c as any).cost_per_ic), cur) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0), cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.ctr || 0) > 0 ? fmtPct(Number(c.ctr || 0)) : '0,00%'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0), cur)}</TableCell>
@@ -733,6 +739,8 @@ const Trafego = () => {
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.roas > 0 ? `${totals.roas.toFixed(2)}x` : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.revenue > 0 ? fmtPct(totals.margin) : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.spend > 0 ? fmtPct(totals.roi) : 'N/A'}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{filteredCampaigns.reduce((s, c) => s + Number((c as any).initiate_checkout || 0), 0)}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">N/A</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend > 0 && totals.clicks > 0 ? totals.spend / totals.clicks : 0)}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions > 0 ? fmtPct((totals.clicks / totals.impressions) * 100) : '0,0%'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0)}</TableCell>
