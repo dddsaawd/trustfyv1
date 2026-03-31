@@ -228,45 +228,42 @@ const Trafego = () => {
             {/* ===== CONTAS TAB ===== */}
             <TabsContent value="contas" className="mt-4 space-y-4">
               {adAccounts && adAccounts.length > 0 ? (
-                <Card className="border-border">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-bold">
-                        Contas de Anúncio ({PLATFORMS.find(p => p.id === activePlatform)?.label})
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Ativar todas:</span>
-                        <Switch
-                          checked={activeAccountIds.length === adAccounts.length}
-                          onCheckedChange={(checked) => toggleAllAccounts(!!checked)}
-                        />
-                      </div>
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Escolha suas contas de anúncio:</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Ativar todas:</span>
+                      <Switch
+                        checked={activeAccountIds.length === adAccounts.length}
+                        onCheckedChange={(checked) => toggleAllAccounts(!!checked)}
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Escolha suas contas de anúncio:</p>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-0">
-                    {adAccounts.map((acc, i) => (
-                      <div
-                        key={acc.id}
-                        className={cn(
-                          'flex items-center justify-between py-3 px-1',
-                          i < adAccounts.length - 1 && 'border-b border-border'
-                        )}
-                      >
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{acc.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            status: {acc.active ? 'Ativa' : 'Desabilitada'}
-                          </p>
-                        </div>
-                        <Switch
-                          checked={acc.active}
-                          onCheckedChange={() => toggleAccountActive(acc.id, acc.active)}
-                        />
-                      </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {adAccounts.map(acc => (
+                      <Card key={acc.id} className={cn(
+                        'border-border transition-all',
+                        acc.active && 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                      )}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{acc.name}</p>
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                status: {acc.active ? 'Ativa' : 'Desabilitada'}
+                              </p>
+                            </div>
+                            <Switch
+                              checked={acc.active}
+                              onCheckedChange={() => toggleAccountActive(acc.id, acc.active)}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </>
               ) : (
                 <Card className="border-border">
                   <CardContent className="py-12">
