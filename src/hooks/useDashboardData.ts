@@ -24,6 +24,7 @@ interface DashboardData {
   totalApproved: number;
   totalPending: number;
   totalRefused: number;
+  adsSyncing: boolean;
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -446,6 +447,7 @@ export function useDashboardData(): DashboardData {
       totalApproved: 0,
       totalPending: 0,
       totalRefused: 0,
+      adsSyncing: !adsSyncReady,
     };
   }
 
@@ -487,5 +489,6 @@ export function useDashboardData(): DashboardData {
     totalApproved: m.approvedCount,
     totalPending: m.pendingCount,
     totalRefused: m.refusedCount,
+    adsSyncing: !adsSyncReady,
   };
 }

@@ -32,7 +32,7 @@ const periodOptions: { value: DateRange; label: string }[] = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const { kpis, warModeKPIs, recentOrders, isLoading, hasRealData, filters, setFilters, totalOrders, totalApproved, totalPending, totalRefused } = useDashboardData();
+  const { kpis, warModeKPIs, recentOrders, isLoading, hasRealData, filters, setFilters, totalOrders, totalApproved, totalPending, totalRefused, adsSyncing } = useDashboardData();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -151,7 +151,7 @@ const Index = () => {
           {/* KPI Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
             {kpis.map((kpi, i) => (
-              <KPICard key={i} {...kpi} index={i} />
+              <KPICard key={i} {...kpi} index={i} syncing={kpi.label === 'Gastos com Ads' && adsSyncing} />
             ))}
           </div>
 
