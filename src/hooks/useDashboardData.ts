@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -226,6 +226,7 @@ export function useDashboardData(): DashboardData {
   const { start, end, prevStart, prevEnd } = useMemo(() => getDateRange(filters), [filters]);
   const changeLabel = changeLabelMap[filters.dateRange];
   const lastSyncKeyRef = useRef<string>('');
+  const [adsSyncReady, setAdsSyncReady] = useState(false);
 
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ['dashboard-orders', start, end],
@@ -270,9 +271,11 @@ export function useDashboardData(): DashboardData {
   });
 
   const { data: campaignSpendBRL, isLoading: loadingCampaigns, refetch: refetchCampaignSpend } = useQuery({
-    queryKey: ['dashboard-campaigns-brl', start, end],
+    queryKey: ['dashboard-campaigns-brl', start, end, adsSyncReady],
     queryFn: getCampaignSpendInBRL,
+    enabled: adsSyncReady,
     refetchInterval: filters.dateRange === 'today' ? 15000 : false,
+    staleTime: 0,
   });
 
   const { data: prevCampaignSpendBRL } = useQuery({
@@ -315,6 +318,7 @@ export function useDashboardData(): DashboardData {
     const syncKey = `${user.id}:${filters.dateRange}:${start}:${end}`;
     if (lastSyncKeyRef.current === syncKey) return;
     lastSyncKeyRef.current = syncKey;
+    setAdsSyncReady(false);
 
     const controller = new AbortController();
 
@@ -328,11 +332,15 @@ export function useDashboardData(): DashboardData {
         });
 
         if (response.ok) {
-          await refetchCampaignSpend();
+          setAdsSyncReady(true);
+        } else {
+          // Even on error, allow reading whatever is in the DB
+          setAdsSyncReady(true);
         }
       } catch (error) {
         if ((error as DOMException).name !== 'AbortError') {
           console.error('Erro ao sincronizar gasto com ads do resumo:', error);
+          setAdsSyncReady(true);
         }
       }
     };
@@ -340,7 +348,7 @@ export function useDashboardData(): DashboardData {
     void syncCampaignsForSelectedPeriod();
 
     return () => controller.abort();
-  }, [user?.id, filters, start, end, refetchCampaignSpend]);
+  }, [user?.id, filters, start, end]);
 
   const isLoading = loadingOrders || loadingCosts || loadingCampaigns;
   const hasRealData = !!(orders && orders.length > 0);
@@ -449,7 +457,7 @@ export function useDashboardData(): DashboardData {
 
   const kpis: KPIData[] = [
     { label: 'Faturamento Bruto', value: `R$ ${fmt(m.grossRevenue)}`, change: pm ? calcChange(m.grossRevenue, pm.grossRevenue) : 0, changeLabel, tooltip: 'Total de vendas brutas no período' },
-    { label: 'Faturamento Líquido', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
+    { label: 'Vendas Aprovadas', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
     { label: 'Gastos com Ads', value: `R$ ${fmt(m.totalAdSpend)}`, change: pm ? calcChange(m.totalAdSpend, pm.totalAdSpend) : 0, changeLabel, tooltip: 'Total investido em anúncios' },
     { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0, changeLabel, tooltip: 'Receita líquida menos todos os custos' },
     { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0, changeLabel, tooltip: 'Faturamento ÷ Gasto com Ads' },
