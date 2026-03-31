@@ -385,7 +385,8 @@ Deno.serve(async (req) => {
           }
         }
         
-        const shippingCost = order.shipping_cost ?? (costSettings?.avg_shipping ?? 0)
+        // Use explicit shipping from payload; if not provided, use avg_shipping from settings
+        const shippingCost = order.shipping_cost != null ? order.shipping_cost : (costSettings?.avg_shipping ?? 0)
         const tax = order.tax ?? (costSettings
           ? grossValue * costSettings.tax_percent / 100
           : 0)
