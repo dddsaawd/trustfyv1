@@ -90,6 +90,18 @@ function getDateRange(filters: DashboardFilters): { start: string; end: string; 
       prevEnd = `${getBrazilDate(pd30End)}T23:59:59-03:00`;
       break;
     }
+    case '365d': {
+      const d365 = new Date(now);
+      d365.setDate(d365.getDate() - 364);
+      start = `${getBrazilDate(d365)}T00:00:00-03:00`;
+      end = `${todayBR}T23:59:59-03:00`;
+      const p365End = new Date(d365);
+      p365End.setDate(p365End.getDate() - 1);
+      const p365Start = new Date(p365End);
+      p365Start.setDate(p365Start.getDate() - 364);
+      prevStart = `${getBrazilDate(p365Start)}T00:00:00-03:00`;
+      prevEnd = `${getBrazilDate(p365End)}T23:59:59-03:00`;
+      break;
     case 'custom': {
       const cs = filters.customStart || now;
       const ce = filters.customEnd || now;
