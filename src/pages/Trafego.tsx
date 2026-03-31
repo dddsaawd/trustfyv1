@@ -740,8 +740,8 @@ const Trafego = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredCampaigns.length > 0 ? (
-                          filteredCampaigns.map((c) => {
+                        {paginatedCampaigns.length > 0 ? (
+                          paginatedCampaigns.map((c) => {
                             const spend = Number(c.spend || 0);
                             const rev = Number(c.revenue || 0);
                             const pft = Number(c.profit || 0);
