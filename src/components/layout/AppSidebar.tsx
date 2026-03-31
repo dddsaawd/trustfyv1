@@ -1,10 +1,11 @@
 import {
   LayoutDashboard, ShoppingCart, Megaphone, Package, Link2, DollarSign,
-  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords
+  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords, Shield
 } from 'lucide-react';
 import trustfyLogo from '@/assets/trustfy-logo.png';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
+import { useAdmin } from '@/hooks/useAdmin';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -32,6 +33,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
+  const { isAdmin } = useAdmin();
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -96,6 +98,12 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        {isAdmin && (
+          <NavLink to="/admin" className="flex items-center gap-3 rounded-lg bg-accent/50 border border-border/50 px-3 py-2.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground" activeClassName="bg-accent text-foreground">
+            <Shield className="h-4 w-4 shrink-0" />
+            {!collapsed && <span className="font-medium">Admin</span>}
+          </NavLink>
+        )}
         <NavLink to="/modo-escala" className="flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5 text-sm text-primary transition-all hover:bg-primary/10" activeClassName="bg-primary/15">
           <TrendingUp className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="font-medium">Modo Escala</span>}
