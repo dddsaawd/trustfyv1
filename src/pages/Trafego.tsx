@@ -674,7 +674,7 @@ const Trafego = () => {
                                         onClick={() => { setEditingBudget(c.id); setBudgetValue(String(Number(c.budget_daily || 0).toFixed(2))); }}
                                         className="opacity-0 group-hover/budget:opacity-100 transition-opacity p-0.5 rounded hover:bg-primary/10"
                                       >
-                                        <Settings className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                                        <Pencil className="h-3 w-3 text-muted-foreground hover:text-primary" />
                                       </button>
                                       <span>
                                         {fmt(Number(c.budget_daily || 0))}
