@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { KPIData } from '@/types/database';
 
-export type DateRange = 'today' | '7d' | '30d' | 'custom';
+export type DateRange = 'today' | 'yesterday' | '7d' | '30d' | '365d' | 'custom';
 
 interface DashboardFilters {
   dateRange: DateRange;
