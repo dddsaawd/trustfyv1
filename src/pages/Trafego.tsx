@@ -59,7 +59,7 @@ const Trafego = () => {
   });
 
   // Fetch ad accounts
-  const { data: adAccounts } = useQuery({
+  const { data: adAccounts, refetch: refetchAccounts } = useQuery({
     queryKey: ['ad_accounts', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from('ad_accounts').select('*');
@@ -68,6 +68,33 @@ const Trafego = () => {
     },
     enabled: !!user,
   });
+
+  // Active account IDs (derived from DB active field)
+  const activeAccountIds = useMemo(() =>
+    (adAccounts || []).filter(a => a.active).map(a => a.id),
+    [adAccounts]
+  );
+
+  const toggleAccountActive = useCallback(async (accountId: string, currentActive: boolean) => {
+    const { error } = await supabase
+      .from('ad_accounts')
+      .update({ active: !currentActive })
+      .eq('id', accountId);
+    if (error) {
+      toast.error('Erro ao atualizar conta');
+      return;
+    }
+    refetchAccounts();
+  }, [refetchAccounts]);
+
+  const toggleAllAccounts = useCallback(async (activate: boolean) => {
+    if (!adAccounts) return;
+    const ids = adAccounts.map(a => a.id);
+    for (const id of ids) {
+      await supabase.from('ad_accounts').update({ active: activate }).eq('id', id);
+    }
+    refetchAccounts();
+  }, [adAccounts, refetchAccounts]);
 
   // Fetch integration status
   const { data: integration } = useQuery({
