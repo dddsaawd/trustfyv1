@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
       )
 
       let nextUrl: string | null = `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=${fields}&limit=500&access_token=${accessToken}`
+      let accountZeroed = false
 
       while (nextUrl) {
         const campaignsRes = await fetch(nextUrl)
@@ -137,6 +138,16 @@ Deno.serve(async (req) => {
         if (campaignsData.error) {
           console.error(`Error fetching campaigns for ${actId}:`, campaignsData.error)
           break
+        }
+
+        // Zero out this account's campaigns only on first successful response
+        if (!accountZeroed && adAccountUuid) {
+          await supabase
+            .from('campaigns')
+            .update({ spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, profit: 0, roas: 0, cpa: 0, cpc: 0, cpm: 0, ctr: 0, initiate_checkout: 0, cost_per_ic: 0 })
+            .eq('user_id', user_id)
+            .eq('ad_account_id', adAccountUuid)
+          accountZeroed = true
         }
 
         const batch: any[] = []
