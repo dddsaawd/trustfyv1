@@ -17,8 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CostSettings {
+  gateway_provider: string;
   gateway_fee_percent: number;
   gateway_fee_fixed: number;
+  gateway_pix_percent: number;
+  gateway_card_percent: number;
   avg_shipping: number;
   tax_percent: number;
   monthly_fixed_expenses: number;
@@ -30,9 +33,22 @@ interface CostSettings {
   antecipation_fee_percent: number;
 }
 
+const GATEWAY_PRESETS: Record<string, { label: string; pix: number; card: number; fixed: number; boleto: number }> = {
+  'pagar_me': { label: 'Pagar.me', pix: 1.19, card: 4.99, fixed: 0.39, boleto: 3.49 },
+  'mercado_pago': { label: 'Mercado Pago', pix: 0.99, card: 4.98, fixed: 0, boleto: 3.49 },
+  'pagseguro': { label: 'PagSeguro', pix: 0.99, card: 4.99, fixed: 0, boleto: 3.49 },
+  'stripe': { label: 'Stripe', pix: 0, card: 3.99, fixed: 0.39, boleto: 0 },
+  'appmax': { label: 'Appmax', pix: 0.99, card: 4.79, fixed: 0, boleto: 2.99 },
+  'yampi': { label: 'Yampi Pay', pix: 0.99, card: 4.49, fixed: 0, boleto: 3.49 },
+  'custom': { label: 'Personalizado', pix: 0, card: 4.99, fixed: 0, boleto: 3.49 },
+};
+
 const defaultCosts: CostSettings = {
+  gateway_provider: 'custom',
   gateway_fee_percent: 4.99,
   gateway_fee_fixed: 0,
+  gateway_pix_percent: 0,
+  gateway_card_percent: 4.99,
   avg_shipping: 12.00,
   tax_percent: 5.00,
   monthly_fixed_expenses: 530.00,
