@@ -293,9 +293,28 @@ export function useDashboardData(): DashboardData {
 
     const totalProductCost = approved.reduce((s, o) => s + (o.product_cost || 0), 0);
     const totalGatewayFee = approved.reduce((s, o) => {
+      // If order already has gateway_fee calculated (from webhook), use it
       if (o.gateway_fee && o.gateway_fee > 0) return s + o.gateway_fee;
-      if (cs) return s + ((o.gross_value * cs.gateway_fee_percent / 100) + cs.gateway_fee_fixed);
-      return s;
+      if (!cs) return s;
+      
+      const method = o.payment_method || 'pix';
+      const installments = o.installments || 1;
+      const csAny = cs as any;
+      
+      if (method === 'credit_card' && installments >= 2 && installmentRates && installmentRates[installments]) {
+        return s + (o.gross_value * installmentRates[installments] / 100);
+      } else if (method === 'credit_card') {
+        const cardRate = csAny.gateway_card_percent || cs.gateway_fee_percent || 0;
+        const cardFixed = cs.gateway_fee_fixed || 0;
+        return s + (o.gross_value * cardRate / 100) + cardFixed;
+      } else if (method === 'pix') {
+        const pixRate = csAny.gateway_pix_percent || 0;
+        const pixFixed = csAny.gateway_pix_fixed || 0;
+        return s + (o.gross_value * pixRate / 100) + pixFixed;
+      } else if (method === 'boleto') {
+        return s + (cs.boleto_fee || 0);
+      }
+      return s + ((o.gross_value * cs.gateway_fee_percent / 100) + cs.gateway_fee_fixed);
     }, 0);
     const totalShipping = approved.reduce((s, o) => {
       if (o.shipping_cost && o.shipping_cost > 0) return s + o.shipping_cost;
