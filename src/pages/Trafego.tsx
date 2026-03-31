@@ -574,7 +574,7 @@ const Trafego = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] text-muted-foreground">{timeSinceUpdate}</span>
-                  <Button size="sm" onClick={handleSync} disabled={syncing || !isConnected} className="h-8 text-xs gap-1.5">
+                  <Button size="sm" onClick={() => handleSync()} disabled={syncing || !isConnected} className="h-8 text-xs gap-1.5">
                     {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                     Atualizar
                   </Button>
