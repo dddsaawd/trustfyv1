@@ -68,19 +68,23 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0]
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    for (const account of adAccounts) {
+    // Get active ad accounts from DB to only sync those
+    const { data: activeDbAccounts } = await supabase
+      .from('ad_accounts')
+      .select('id, account_id')
+      .eq('user_id', user_id)
+      .eq('active', true)
+
+    const activeAccountIds = new Set((activeDbAccounts || []).map(a => a.account_id))
+
+    // Filter to only sync active accounts
+    const accountsToSync = adAccounts.filter((a: any) => activeAccountIds.has(a.id.replace('act_', '')))
+
+    for (const account of accountsToSync) {
       const actId = account.id // format: act_XXXXX
       const accountNumericId = actId.replace('act_', '')
 
-      // Find matching ad_account row to get its UUID
-      const { data: adAccountRow } = await supabase
-        .from('ad_accounts')
-        .select('id')
-        .eq('user_id', user_id)
-        .eq('account_id', accountNumericId)
-        .maybeSingle()
-
-      const adAccountUuid = adAccountRow?.id || null
+      const adAccountUuid = (activeDbAccounts || []).find(a => a.account_id === accountNumericId)?.id || null
 
       // Check account payment status from Meta API
       try {
@@ -201,7 +205,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       campaigns_synced: totalSynced,
-      accounts_processed: adAccounts.length 
+      accounts_processed: accountsToSync.length 
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
