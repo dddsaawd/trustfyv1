@@ -38,7 +38,7 @@ const Trafego = () => {
   const [nameFilter, setNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [syncing, setSyncing] = useState(false);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
