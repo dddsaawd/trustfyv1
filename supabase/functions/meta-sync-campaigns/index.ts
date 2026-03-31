@@ -137,6 +137,8 @@ Deno.serve(async (req) => {
           break
         }
 
+        const batch: any[] = []
+
         for (const campaign of (campaignsData.data || [])) {
           const insights = campaign.insights?.data?.[0] || {}
           const actions = insights.actions || []
@@ -165,44 +167,34 @@ Deno.serve(async (req) => {
           const cpa = conv > 0 ? spend / conv : 0
           const profit = rev - spend
 
-          // Determine score
           let score: 'scale' | 'watch' | 'cut' = 'watch'
           if (roas >= 2) score = 'scale'
           else if (roas < 1 && spend > 50) score = 'cut'
 
-          // Map Meta status to our enum
           let status: 'active' | 'paused' | 'ended' = 'paused'
           if (campaign.status === 'ACTIVE') status = 'active'
           else if (campaign.status === 'ARCHIVED' || campaign.status === 'DELETED') status = 'ended'
 
-          // Upsert campaign using external_id (Meta campaign ID) for uniqueness
-          const { error } = await supabase
-            .from('campaigns')
-            .upsert({
-              user_id: user_id,
-              external_id: campaign.id,
-              name: campaign.name,
-              platform: 'meta',
-              ad_account_id: adAccountUuid,
-              status,
-              budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
-              spend,
-              impressions,
-              clicks,
-              cpm,
-              ctr,
-              cpc,
-              cpa,
-              conversions: conv,
-              revenue: rev,
-              profit,
-              roas,
-              score,
-              initiate_checkout: initiateCheckout,
-              cost_per_ic: costPerIc,
-            }, { onConflict: 'user_id,external_id,platform' })
+          batch.push({
+            user_id: user_id,
+            external_id: campaign.id,
+            name: campaign.name,
+            platform: 'meta',
+            ad_account_id: adAccountUuid,
+            status, budget_daily: campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : 0,
+            spend, impressions, clicks, cpm, ctr, cpc, cpa,
+            conversions: conv, revenue: rev, profit, roas, score,
+            initiate_checkout: initiateCheckout, cost_per_ic: costPerIc,
+          })
+        }
 
-          if (!error) totalSynced++
+        // Batch upsert for speed
+        if (batch.length > 0) {
+          const { error, count } = await supabase
+            .from('campaigns')
+            .upsert(batch, { onConflict: 'user_id,external_id,platform' })
+          if (!error) totalSynced += batch.length
+          else console.error('Batch upsert error:', error)
         }
 
         // Follow pagination
