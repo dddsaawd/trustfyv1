@@ -386,12 +386,72 @@ const Trafego = () => {
 
             {/* ===== CAMPANHAS TAB ===== */}
             <TabsContent value="campanhas" className="mt-4 space-y-4">
-              {/* Tracked badge + Sync */}
+              {/* Toolbar */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30 gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8"><Settings className="h-3.5 w-3.5" /></Button>
+                  </TooltipTrigger><TooltipContent>Configurações</TooltipContent></Tooltip>
+
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8"><ArrowUp className="h-3.5 w-3.5" /></Button>
+                  </TooltipTrigger><TooltipContent>Ordenar</TooltipContent></Tooltip>
+
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8"><BarChart3 className="h-3.5 w-3.5" /></Button>
+                  </TooltipTrigger><TooltipContent>Gráfico</TooltipContent></Tooltip>
+
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                    <ExternalLink className="h-3.5 w-3.5" /> Abrir no gerenciador
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8"><ChevronDown className="h-3.5 w-3.5" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-52">
+                      <DropdownMenuItem onClick={() => toast.info('Gráfico comparativo em breve')}>
+                        <BarChart3 className="h-4 w-4 mr-2" /> Gráfico comparativo
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={bulkActivate} disabled={selectedCampaigns.length === 0}>
+                        <Play className="h-4 w-4 mr-2" /> Ativar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={bulkPause} disabled={selectedCampaigns.length === 0}>
+                        <Pause className="h-4 w-4 mr-2" /> Desativar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { if (selectedCampaigns.length === 0) { toast.error('Selecione campanhas'); return; } setBulkBudgetOpen(true); }} disabled={selectedCampaigns.length === 0}>
+                        <DollarSign className="h-4 w-4 mr-2" /> Alterar orçamento
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast.info('Bid cap em breve')} disabled={selectedCampaigns.length === 0}>
+                        <Target className="h-4 w-4 mr-2" /> Alterar bid cap
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => toast.info('Fixar em breve')}>
+                        <Pin className="h-4 w-4 mr-2" /> Fixar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copySelectedIds} disabled={selectedCampaigns.length === 0}>
+                        <Copy className="h-4 w-4 mr-2" /> Copiar ID
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={filterSelected} disabled={selectedCampaigns.length === 0}>
+                        <Filter className="h-4 w-4 mr-2" /> Filtrar selecionadas
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={bulkDelete} disabled={selectedCampaigns.length === 0} className="text-destructive focus:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30 gap-1 ml-2">
                     <CheckCircle className="h-3 w-3" /> Todas as vendas trackeadas
                   </Badge>
+
+                  {selectedCampaigns.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] gap-1 ml-1">
+                      {selectedCampaigns.length} selecionada{selectedCampaigns.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] text-muted-foreground">{timeSinceUpdate}</span>
