@@ -151,7 +151,7 @@ const Index = () => {
           {/* KPI Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
             {kpis.map((kpi, i) => (
-              <KPICard key={i} {...kpi} index={i} />
+              <KPICard key={i} {...kpi} index={i} syncing={kpi.label === 'Gastos com Ads' && adsSyncing} />
             ))}
           </div>
 
