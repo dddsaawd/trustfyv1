@@ -91,6 +91,54 @@ interface CorvexPayload {
   }
 }
 
+// Anti-fraud: blocked name patterns
+const BLOCKED_NAMES = [
+  'teste', 'test', 'fulano', 'ciclano', 'beltrano', 'ninguem', 'ninguém',
+  'não sei', 'nao sei', 'qualquer', 'aaa', 'bbb', 'ccc', 'xxx', 'zzz',
+  'asdf', 'qwert', 'fake', 'fraude', 'lixo', 'merda', 'porra', 'caralho',
+  'foda', 'fdp', 'pqp', 'cuzão', 'cuzao', 'arrombado', 'idiota', 'otario',
+  'otário', 'babaca', 'imbecil', 'burro', 'trouxa', 'vagabundo', 'desgraça',
+  'desgraca', 'maldito', 'clone', 'clona', 'concorrente', 'spam',
+  'nobody', 'noone', 'john doe', 'jane doe', 'anonymous', 'anônimo', 'anonimo',
+]
+
+function isSuspiciousName(name: string): { suspicious: boolean; reason: string } {
+  if (!name || name.trim().length < 3) {
+    return { suspicious: true, reason: 'Nome muito curto ou vazio' }
+  }
+
+  const normalized = name.toLowerCase().trim()
+
+  // Check exact matches and contains
+  for (const blocked of BLOCKED_NAMES) {
+    if (normalized === blocked || normalized.includes(blocked)) {
+      return { suspicious: true, reason: `Nome bloqueado: "${name}" contém "${blocked}"` }
+    }
+  }
+
+  // All same character (e.g. "aaaa", "bbbb")
+  if (/^(.)\1{2,}$/.test(normalized.replace(/\s/g, ''))) {
+    return { suspicious: true, reason: `Nome repetitivo: "${name}"` }
+  }
+
+  // Only consonants or only vowels (gibberish)
+  const letters = normalized.replace(/[^a-záàâãéèêíïóôõúüç]/gi, '')
+  if (letters.length >= 4) {
+    const vowels = letters.replace(/[^aeiouáàâãéèêíïóôõúü]/gi, '')
+    if (vowels.length === 0) {
+      return { suspicious: true, reason: `Nome sem vogais (gibberish): "${name}"` }
+    }
+  }
+
+  // Single word with less than 3 chars
+  const words = normalized.split(/\s+/).filter(w => w.length > 0)
+  if (words.length === 1 && words[0].length < 4) {
+    return { suspicious: true, reason: `Nome suspeito (muito curto, sem sobrenome): "${name}"` }
+  }
+
+  return { suspicious: false, reason: '' }
+}
+
 function isCorvexPayload(payload: any): payload is CorvexPayload {
   return payload.event && typeof payload.event === 'string' && payload.event.startsWith('corvex.')
 }
