@@ -127,6 +127,38 @@ const Trafego = () => {
 
   const statusOrder: Record<string, number> = { active: 0, paused: 1, ended: 2 };
 
+  const toggleSort = useCallback((col: string) => {
+    if (sortColumn === col) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDirection('desc');
+    }
+  }, [sortColumn]);
+
+  const getSortValue = (c: any, col: string): number | string => {
+    switch (col) {
+      case 'status': return statusOrder[c.status] ?? 99;
+      case 'name': return c.name?.toLowerCase() || '';
+      case 'budget_daily': return Number(c.budget_daily || 0);
+      case 'updated_at': return new Date(c.updated_at).getTime();
+      case 'conversions': return Number(c.conversions || 0);
+      case 'cpa': return Number(c.cpa || 0);
+      case 'spend': return Number(c.spend || 0);
+      case 'revenue': return Number(c.revenue || 0);
+      case 'profit': return Number(c.profit || 0);
+      case 'roas': return Number(c.roas || 0);
+      case 'margin': { const rev = Number(c.revenue || 0); const pft = Number(c.profit || 0); return rev > 0 ? pft / rev : 0; }
+      case 'roi': { const sp = Number(c.spend || 0); const pf = Number(c.profit || 0); return sp > 0 ? pf / sp : 0; }
+      case 'cpc': return Number(c.cpc || 0);
+      case 'ctr': return Number(c.ctr || 0);
+      case 'cpm': return Number(c.cpm || 0);
+      case 'impressions': return Number(c.impressions || 0);
+      case 'clicks': return Number(c.clicks || 0);
+      default: return 0;
+    }
+  };
+
   const filteredCampaigns = useMemo(() => {
     if (!campaigns) return [];
     return campaigns
@@ -136,8 +168,13 @@ const Trafego = () => {
         if (statusFilter !== 'all' && c.status !== statusFilter) return false;
         return true;
       })
-      .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
-  }, [campaigns, nameFilter, statusFilter, activeAccountIds]);
+      .sort((a, b) => {
+        const aVal = getSortValue(a, sortColumn);
+        const bVal = getSortValue(b, sortColumn);
+        const cmp = typeof aVal === 'string' ? aVal.localeCompare(bVal as string) : (aVal as number) - (bVal as number);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      });
+  }, [campaigns, nameFilter, statusFilter, activeAccountIds, sortColumn, sortDirection]);
 
   // Aggregated totals
   const totals = useMemo(() => {
