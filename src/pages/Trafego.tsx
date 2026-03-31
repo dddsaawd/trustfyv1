@@ -166,6 +166,8 @@ const Trafego = () => {
       case 'cpm': return Number(c.cpm || 0);
       case 'impressions': return Number(c.impressions || 0);
       case 'clicks': return Number(c.clicks || 0);
+      case 'initiate_checkout': return Number((c as any).initiate_checkout || 0);
+      case 'cost_per_ic': return Number((c as any).cost_per_ic || 0);
       default: return 0;
     }
   };
