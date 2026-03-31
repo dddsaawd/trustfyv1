@@ -467,6 +467,11 @@ const Trafego = () => {
                                 <TableCell className="text-xs text-right tabular-nums">{roas > 0 ? `${roas.toFixed(2)}x` : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{rev > 0 ? fmtPct(margin) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{spend > 0 ? fmtPct(roi) : 'N/A'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number(c.ctr || 0) > 0 ? fmtPct(Number(c.ctr || 0)) : '0,00%'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number(c.impressions || 0).toLocaleString('pt-BR')}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number(c.clicks || 0).toLocaleString('pt-BR')}</TableCell>
                               </TableRow>
                             );
                           })
