@@ -214,6 +214,19 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
     }
   }
 
+  // Calculate shipping: difference between amount paid and sum of item prices
+  const itemsTotal = corvex.items?.reduce((sum, i) => sum + (i.price * i.quantity), 0) || 0
+  const paymentMethod = mapCorvexMethod(corvex.method)
+  
+  // For pix, amount usually equals items total (no interest)
+  // For card, amount can be higher due to installment interest
+  // Shipping is only the difference when it's a pix payment (no interest)
+  // For card, we can't reliably separate shipping from interest, so use avg_shipping from settings
+  let shippingCost: number | undefined = undefined
+  if (paymentMethod === 'pix' && totalValue > itemsTotal) {
+    shippingCost = Math.round((totalValue - itemsTotal) * 100) / 100
+  }
+
   const order: WebhookOrder = {
     order_number: corvex.id,
     customer_name: corvex.client?.name || 'Cliente',
@@ -222,9 +235,10 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
     product_name: allProductNames,
     product_sku: mainItem?.externalRef || undefined,
     gross_value: totalValue,
-    payment_method: mapCorvexMethod(corvex.method),
+    payment_method: paymentMethod,
     payment_status: mapCorvexStatus(corvex.status),
     installments: corvex.installments || undefined,
+    shipping_cost: shippingCost,
     platform: 'corvex',
     utm_source: corvex.utm?.source || undefined,
     utm_campaign: corvex.utm?.campaign || undefined,
@@ -371,7 +385,8 @@ Deno.serve(async (req) => {
           }
         }
         
-        const shippingCost = order.shipping_cost ?? (costSettings?.avg_shipping ?? 0)
+        // Use explicit shipping from payload; if not provided, use avg_shipping from settings
+        const shippingCost = order.shipping_cost != null ? order.shipping_cost : (costSettings?.avg_shipping ?? 0)
         const tax = order.tax ?? (costSettings
           ? grossValue * costSettings.tax_percent / 100
           : 0)
