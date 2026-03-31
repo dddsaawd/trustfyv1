@@ -724,7 +724,7 @@ const Trafego = () => {
                           <TableCell className="text-[10px] text-muted-foreground">N/A</TableCell>
                           <TableCell className="text-[10px]">{totals.count} CAMPANHAS</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{fmt(0)}</TableCell>
-                          <TableCell className="text-[10px] text-right text-muted-foreground">N/A</TableCell>
+                          
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.conversions}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.conversions > 0 ? fmt(totals.cpa) : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend)}</TableCell>
