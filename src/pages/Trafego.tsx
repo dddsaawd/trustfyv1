@@ -646,6 +646,30 @@ const Trafego = () => {
                 <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
                 <span className="text-[10px] text-muted-foreground/60">Por que as campanhas não estão aparecendo?</span>
               </div>
+
+              {/* Bulk Budget Dialog */}
+              <Dialog open={bulkBudgetOpen} onOpenChange={setBulkBudgetOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-sm">Alterar orçamento ({selectedCampaigns.length} campanhas)</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 py-2">
+                    <label className="text-xs text-muted-foreground">Novo orçamento diário (R$)</label>
+                    <Input
+                      autoFocus
+                      value={bulkBudgetValue}
+                      onChange={e => setBulkBudgetValue(e.target.value)}
+                      placeholder="Ex: 50.00"
+                      className="h-9 text-sm"
+                      onKeyDown={e => { if (e.key === 'Enter') bulkUpdateBudget(); }}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" size="sm" onClick={() => setBulkBudgetOpen(false)}>Cancelar</Button>
+                    <Button size="sm" onClick={bulkUpdateBudget}>Salvar</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* ===== CONJUNTOS TAB ===== */}
