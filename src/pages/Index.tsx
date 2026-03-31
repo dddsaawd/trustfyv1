@@ -102,7 +102,7 @@ const Index = () => {
               <span className="font-medium">Tempo real</span>
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={() => setWarMode(true)} className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs h-8">
+          <Button variant="outline" size="sm" onClick={() => navigate('/modo-guerra')} className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs h-8">
             <Swords className="h-3 w-3 mr-1" /> Modo Guerra
           </Button>
         </div>
