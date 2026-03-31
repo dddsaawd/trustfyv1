@@ -19,6 +19,7 @@ export type Database = {
           account_id: string
           active: boolean
           created_at: string
+          currency: string | null
           id: string
           name: string
           payment_status: string | null
@@ -31,6 +32,7 @@ export type Database = {
           account_id: string
           active?: boolean
           created_at?: string
+          currency?: string | null
           id?: string
           name: string
           payment_status?: string | null
@@ -43,6 +45,7 @@ export type Database = {
           account_id?: string
           active?: boolean
           created_at?: string
+          currency?: string | null
           id?: string
           name?: string
           payment_status?: string | null

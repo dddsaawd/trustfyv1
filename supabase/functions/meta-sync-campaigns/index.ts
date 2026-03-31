@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         if (adAccountUuid) {
           await supabase
             .from('ad_accounts')
-            .update({ payment_status: paymentStatus, payment_status_detail: paymentDetail })
+            .update({ payment_status: paymentStatus, payment_status_detail: paymentDetail, currency: account.currency || 'BRL' })
             .eq('id', adAccountUuid)
         }
       } catch (e) {

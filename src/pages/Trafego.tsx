@@ -33,7 +33,11 @@ const PLATFORMS = [
   { id: 'tiktok', label: 'TikTok', icon: Music, color: 'bg-foreground' },
 ];
 
-const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmt = (v: number, currency = 'BRL') => {
+  const symbols: Record<string, string> = { BRL: 'R$', USD: '$', EUR: '€', GBP: '£', AUD: 'A$', CAD: 'C$' };
+  const sym = symbols[currency] || currency + ' ';
+  return `${sym} ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 const Trafego = () => {
@@ -86,6 +90,13 @@ const Trafego = () => {
     (adAccounts || []).filter(a => a.active).map(a => a.id),
     [adAccounts]
   );
+
+  // Map ad_account_id → currency
+  const accountCurrencyMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (adAccounts || []).forEach(a => { map[a.id] = (a as any).currency || 'BRL'; });
+    return map;
+  }, [adAccounts]);
 
   const toggleAccountActive = useCallback(async (accountId: string, currentActive: boolean) => {
     const { error } = await supabase
@@ -410,7 +421,7 @@ const Trafego = () => {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-semibold text-foreground">{acc.name}</p>
-                              <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id}</p>
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id} · <span className="font-semibold">{(acc as any).currency || 'BRL'}</span></p>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <p className="text-[10px] text-muted-foreground">
                                   {acc.active ? 'Ativa' : 'Desabilitada'}
@@ -647,6 +658,7 @@ const Trafego = () => {
                             const cpa = Number(c.cpa || 0);
                             const margin = rev > 0 ? (pft / rev) * 100 : 0;
                             const roi = spend > 0 ? (pft / spend) * 100 : 0;
+                            const cur = accountCurrencyMap[c.ad_account_id || ''] || 'BRL';
                             return (
                               <TableRow key={c.id} className="border-border">
                                 <TableCell><Checkbox className="h-3.5 w-3.5" checked={selectedCampaigns.includes(c.id)} onCheckedChange={() => toggleSelectCampaign(c.id)} /></TableCell>
@@ -677,7 +689,7 @@ const Trafego = () => {
                                         <Pencil className="h-3 w-3 text-muted-foreground hover:text-primary" />
                                       </button>
                                       <span>
-                                        {fmt(Number(c.budget_daily || 0))}
+                                        {fmt(Number(c.budget_daily || 0), cur)}
                                         <span className="text-[9px] text-muted-foreground block">Diário</span>
                                       </span>
                                     </span>
@@ -687,16 +699,16 @@ const Trafego = () => {
                                   {new Date(c.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{conv}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{conv > 0 ? fmt(cpa) : 'N/A'}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(spend)}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(rev)}</TableCell>
-                                <TableCell className={cn('text-xs text-right tabular-nums font-medium', pft >= 0 ? 'text-success' : 'text-destructive')}>{fmt(pft)}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{conv > 0 ? fmt(cpa, cur) : 'N/A'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(spend, cur)}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(rev, cur)}</TableCell>
+                                <TableCell className={cn('text-xs text-right tabular-nums font-medium', pft >= 0 ? 'text-success' : 'text-destructive')}>{fmt(pft, cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{roas > 0 ? `${roas.toFixed(2)}x` : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{rev > 0 ? fmtPct(margin) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{spend > 0 ? fmtPct(roi) : 'N/A'}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0), cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.ctr || 0) > 0 ? fmtPct(Number(c.ctr || 0)) : '0,00%'}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0), cur)}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.impressions || 0).toLocaleString('pt-BR')}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{Number(c.clicks || 0).toLocaleString('pt-BR')}</TableCell>
                               </TableRow>
