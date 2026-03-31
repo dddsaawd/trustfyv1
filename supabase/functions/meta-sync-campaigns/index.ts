@@ -82,6 +82,44 @@ Deno.serve(async (req) => {
 
       const adAccountUuid = adAccountRow?.id || null
 
+      // Check account payment status from Meta API
+      try {
+        const statusRes = await fetch(
+          `https://graph.facebook.com/v21.0/${actId}?fields=account_status,disable_reason,funding_source_details&access_token=${accessToken}`
+        )
+        const statusData = await statusRes.json()
+        
+        // account_status: 1=Active, 2=Disabled, 3=Unsettled, 7=Pending Risk Review, 8=Pending Settlement, 9=In Grace Period, 100=Pending Closure, 101=Closed, 201=Any Active, 202=Any Closed
+        let paymentStatus = 'ok'
+        let paymentDetail: string | null = null
+        
+        if (statusData.account_status === 2) {
+          paymentStatus = 'disabled'
+          paymentDetail = statusData.disable_reason ? `Conta desabilitada (razão: ${statusData.disable_reason})` : 'Conta desabilitada'
+        } else if (statusData.account_status === 3) {
+          paymentStatus = 'unsettled'
+          paymentDetail = 'Pagamento pendente — verifique seu método de pagamento'
+        } else if (statusData.account_status === 9) {
+          paymentStatus = 'grace_period'
+          paymentDetail = 'Período de carência — pagamento atrasado'
+        } else if (statusData.account_status === 7) {
+          paymentStatus = 'review'
+          paymentDetail = 'Em análise de risco'
+        } else if (statusData.account_status === 8) {
+          paymentStatus = 'pending_settlement'
+          paymentDetail = 'Pagamento em liquidação'
+        }
+
+        if (adAccountUuid) {
+          await supabase
+            .from('ad_accounts')
+            .update({ payment_status: paymentStatus, payment_status_detail: paymentDetail })
+            .eq('id', adAccountUuid)
+        }
+      } catch (e) {
+        console.error(`Error checking payment status for ${actId}:`, e)
+      }
+
       // Fetch campaigns with insights
       const campaignsRes = await fetch(
         `https://graph.facebook.com/v21.0/${actId}/campaigns?fields=id,name,status,daily_budget,insights.date_preset(last_30d){spend,impressions,clicks,cpm,ctr,cpc,actions,action_values,cost_per_action_type}&limit=100&access_token=${accessToken}`

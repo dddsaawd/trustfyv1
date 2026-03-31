@@ -369,9 +369,19 @@ const Trafego = () => {
                             <div>
                               <p className="text-sm font-semibold text-foreground">{acc.name}</p>
                               <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id}</p>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
-                                status: {acc.active ? 'Ativa' : 'Desabilitada'}
-                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <p className="text-[10px] text-muted-foreground">
+                                  {acc.active ? 'Ativa' : 'Desabilitada'}
+                                </p>
+                                {(acc as any).payment_status && (acc as any).payment_status !== 'ok' && (
+                                  <Badge variant="destructive" className="text-[9px] h-4 px-1.5 gap-0.5">
+                                    ⚠ Erro pagamento
+                                  </Badge>
+                                )}
+                              </div>
+                              {(acc as any).payment_status_detail && (acc as any).payment_status !== 'ok' && (
+                                <p className="text-[9px] text-destructive mt-0.5">{(acc as any).payment_status_detail}</p>
+                              )}
                             </div>
                             <Switch
                               checked={acc.active}

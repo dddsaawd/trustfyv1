@@ -21,6 +21,8 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          payment_status: string | null
+          payment_status_detail: string | null
           platform_id: string | null
           updated_at: string
           user_id: string
@@ -31,6 +33,8 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          payment_status?: string | null
+          payment_status_detail?: string | null
           platform_id?: string | null
           updated_at?: string
           user_id: string
@@ -41,6 +45,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          payment_status?: string | null
+          payment_status_detail?: string | null
           platform_id?: string | null
           updated_at?: string
           user_id?: string
