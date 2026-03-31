@@ -270,6 +270,18 @@ const Trafego = () => {
     toast.info('Filtro aplicado');
   }, [selectedCampaigns, filteredCampaigns]);
 
+  const duplicateSelected = useCallback(async () => {
+    if (selectedCampaigns.length === 0) { toast.error('Selecione campanhas'); return; }
+    const toDuplicate = filteredCampaigns.filter(c => selectedCampaigns.includes(c.id));
+    for (const c of toDuplicate) {
+      const { id, created_at, updated_at, ...rest } = c;
+      await supabase.from('campaigns').insert({ ...rest, name: `${c.name} — Cópia` });
+    }
+    toast.success(`${toDuplicate.length} campanha(s) duplicada(s)`);
+    setSelectedCampaigns([]);
+    refetch();
+  }, [selectedCampaigns, filteredCampaigns, refetch]);
+
   const timeSinceUpdate = dataUpdatedAt
     ? `Atualizado ${Math.round((Date.now() - dataUpdatedAt) / 60000)} min atrás`
     : '';
