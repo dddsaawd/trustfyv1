@@ -228,124 +228,45 @@ const Trafego = () => {
             {/* ===== CONTAS TAB ===== */}
             <TabsContent value="contas" className="mt-4 space-y-4">
               {adAccounts && adAccounts.length > 0 ? (
-                <>
-                  {/* Select All / Clear */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[10px]"
-                        onClick={() => toggleAllAccounts(true)}
-                      >
-                        Ativar Todas
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-[10px]"
-                        onClick={() => toggleAllAccounts(false)}
-                      >
-                        Desativar Todas
-                      </Button>
-                      {activeAccountIds.length > 0 && (
-                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
-                          {activeAccountIds.length} conta{activeAccountIds.length > 1 ? 's' : ''} ativa{activeAccountIds.length > 1 ? 's' : ''}
-                        </Badge>
-                      )}
+                <Card className="border-border">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-bold">
+                        Contas de Anúncio ({PLATFORMS.find(p => p.id === activePlatform)?.label})
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Ativar todas:</span>
+                        <Switch
+                          checked={activeAccountIds.length === adAccounts.length}
+                          onCheckedChange={(checked) => toggleAllAccounts(!!checked)}
+                        />
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Account Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {adAccounts.map(acc => {
-                      const isActive = acc.active;
-                      return (
-                        <Card
-                          key={acc.id}
-                          className={cn(
-                            'border-border cursor-pointer transition-all hover:border-primary/40',
-                            isActive && 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                          )}
-                          onClick={() => toggleAccountActive(acc.id, acc.active)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Checkbox
-                                  checked={isActive}
-                                  className="h-4 w-4"
-                                  onCheckedChange={() => {}}
-                                />
-                                <div>
-                                  <p className="text-sm font-semibold text-foreground">{acc.name}</p>
-                                  <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {acc.account_id}</p>
-                                </div>
-                              </div>
-                              <Badge variant={acc.active ? 'default' : 'secondary'}
-                                className={cn('text-[9px]', acc.active && 'bg-success/20 text-success border-success/30')}>
-                                {acc.active ? 'Ativa' : 'Inativa'}
-                              </Badge>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-
-                  {/* Selected Accounts Summary */}
-                  {activeAccountIds.length > 0 && (() => {
-                    const selectedCampaigns = (campaigns || []).filter(c =>
-                      activeAccountIds.includes(c.ad_account_id || '')
-                    );
-                    const totalSpend = selectedCampaigns.reduce((s, c) => s + Number(c.spend || 0), 0);
-                    const totalRevenue = selectedCampaigns.reduce((s, c) => s + Number(c.revenue || 0), 0);
-                    const totalProfit = selectedCampaigns.reduce((s, c) => s + Number(c.profit || 0), 0);
-                    const totalConversions = selectedCampaigns.reduce((s, c) => s + Number(c.conversions || 0), 0);
-                    const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-                    const cpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
-
-                    return (
-                      <Card className="border-primary/20 bg-primary/5">
-                        <CardHeader className="pb-2 pt-3 px-4">
-                          <CardTitle className="text-xs font-bold text-primary uppercase tracking-wide">
-                            Resumo das Contas Ativas ({activeAccountIds.length})
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-4 pb-3">
-                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                            <div>
-                              <p className="text-[10px] text-muted-foreground">Campanhas</p>
-                              <p className="text-sm font-bold text-foreground">{selectedCampaigns.length}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-muted-foreground">Gastos</p>
-                              <p className="text-sm font-bold text-foreground">{fmt(totalSpend)}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-muted-foreground">Faturamento</p>
-                              <p className="text-sm font-bold text-foreground">{fmt(totalRevenue)}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-muted-foreground">Lucro</p>
-                              <p className={cn('text-sm font-bold', totalProfit >= 0 ? 'text-success' : 'text-destructive')}>
-                                {fmt(totalProfit)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-muted-foreground">ROAS</p>
-                              <p className="text-sm font-bold text-foreground">{roas.toFixed(2)}x</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-muted-foreground">CPA</p>
-                              <p className="text-sm font-bold text-foreground">{fmt(cpa)}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })()}
-                </>
+                    <p className="text-xs text-muted-foreground mt-1">Escolha suas contas de anúncio:</p>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-0">
+                    {adAccounts.map((acc, i) => (
+                      <div
+                        key={acc.id}
+                        className={cn(
+                          'flex items-center justify-between py-3 px-1',
+                          i < adAccounts.length - 1 && 'border-b border-border'
+                        )}
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{acc.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            status: {acc.active ? 'Ativa' : 'Desabilitada'}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={acc.active}
+                          onCheckedChange={() => toggleAccountActive(acc.id, acc.active)}
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               ) : (
                 <Card className="border-border">
                   <CardContent className="py-12">
