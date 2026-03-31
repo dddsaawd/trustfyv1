@@ -48,6 +48,8 @@ const Trafego = () => {
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [bulkBudgetOpen, setBulkBudgetOpen] = useState(false);
   const [bulkBudgetValue, setBulkBudgetValue] = useState('');
+  const [sortColumn, setSortColumn] = useState<string>('status');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
