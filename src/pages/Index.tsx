@@ -31,7 +31,7 @@ const periodOptions: { value: DateRange; label: string }[] = [
 ];
 
 const Index = () => {
-  const [warMode, setWarMode] = useState(false);
+  const navigate = useNavigate();
   const { kpis, warModeKPIs, recentOrders, isLoading, hasRealData, filters, setFilters, totalOrders, totalApproved, totalPending, totalRefused } = useDashboardData();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
