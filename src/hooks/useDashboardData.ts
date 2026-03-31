@@ -457,7 +457,7 @@ export function useDashboardData(): DashboardData {
 
   const kpis: KPIData[] = [
     { label: 'Faturamento Bruto', value: `R$ ${fmt(m.grossRevenue)}`, change: pm ? calcChange(m.grossRevenue, pm.grossRevenue) : 0, changeLabel, tooltip: 'Total de vendas brutas no período' },
-    { label: 'Faturamento Líquido', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
+    { label: 'Vendas Aprovadas', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
     { label: 'Gastos com Ads', value: `R$ ${fmt(m.totalAdSpend)}`, change: pm ? calcChange(m.totalAdSpend, pm.totalAdSpend) : 0, changeLabel, tooltip: 'Total investido em anúncios' },
     { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0, changeLabel, tooltip: 'Receita líquida menos todos os custos' },
     { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0, changeLabel, tooltip: 'Faturamento ÷ Gasto com Ads' },
