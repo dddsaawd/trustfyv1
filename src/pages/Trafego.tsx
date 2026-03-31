@@ -407,6 +407,11 @@ const Trafego = () => {
                           <TableHead className="text-[10px] text-right">ROAS <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
                           <TableHead className="text-[10px] text-right">MARGEM <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
                           <TableHead className="text-[10px] text-right">ROI <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
+                          <TableHead className="text-[10px] text-right">CPC</TableHead>
+                          <TableHead className="text-[10px] text-right">CTR</TableHead>
+                          <TableHead className="text-[10px] text-right">CPM</TableHead>
+                          <TableHead className="text-[10px] text-right">IMPRESSÕES</TableHead>
+                          <TableHead className="text-[10px] text-right">CLIQUES</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
