@@ -39,6 +39,8 @@ const Trafego = () => {
   const [nameFilter, setNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [syncing, setSyncing] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<string | null>(null);
+  const [budgetValue, setBudgetValue] = useState('');
   const queryClient = useQueryClient();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -162,6 +164,39 @@ const Trafego = () => {
     }
     setSyncing(false);
   };
+
+  const toggleCampaignStatus = useCallback(async (campaignId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ status: newStatus })
+      .eq('id', campaignId);
+    if (error) {
+      toast.error('Erro ao atualizar status');
+      return;
+    }
+    toast.success(`Campanha ${newStatus === 'active' ? 'ativada' : 'pausada'}`);
+    refetch();
+  }, [refetch]);
+
+  const saveBudget = useCallback(async (campaignId: string) => {
+    const value = parseFloat(budgetValue.replace(',', '.'));
+    if (isNaN(value) || value < 0) {
+      toast.error('Valor inválido');
+      return;
+    }
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ budget_daily: value })
+      .eq('id', campaignId);
+    if (error) {
+      toast.error('Erro ao salvar orçamento');
+      return;
+    }
+    toast.success('Orçamento atualizado');
+    setEditingBudget(null);
+    refetch();
+  }, [budgetValue, refetch]);
 
   const timeSinceUpdate = dataUpdatedAt
     ? `Atualizado ${Math.round((Date.now() - dataUpdatedAt) / 60000)} min atrás`
@@ -360,7 +395,7 @@ const Trafego = () => {
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
                           <TableHead className="text-[10px] w-8"><Checkbox className="h-3.5 w-3.5" /></TableHead>
-                          <TableHead className="text-[10px]">STATUS</TableHead>
+                          <TableHead className="text-[10px] w-14">STATUS</TableHead>
                           <TableHead className="text-[10px]">CAMPANHA</TableHead>
                           <TableHead className="text-[10px] text-right">ORÇAMENTO</TableHead>
                           <TableHead className="text-[10px] text-right">ÚLT. ATUALIZAÇÃO</TableHead>
@@ -372,6 +407,11 @@ const Trafego = () => {
                           <TableHead className="text-[10px] text-right">ROAS <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
                           <TableHead className="text-[10px] text-right">MARGEM <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
                           <TableHead className="text-[10px] text-right">ROI <Info className="h-3 w-3 inline text-muted-foreground/40" /></TableHead>
+                          <TableHead className="text-[10px] text-right">CPC</TableHead>
+                          <TableHead className="text-[10px] text-right">CTR</TableHead>
+                          <TableHead className="text-[10px] text-right">CPM</TableHead>
+                          <TableHead className="text-[10px] text-right">IMPRESSÕES</TableHead>
+                          <TableHead className="text-[10px] text-right">CLIQUES</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -389,17 +429,33 @@ const Trafego = () => {
                               <TableRow key={c.id} className="border-border">
                                 <TableCell><Checkbox className="h-3.5 w-3.5" /></TableCell>
                                 <TableCell>
-                                  <Badge variant={c.status === 'active' ? 'default' : 'secondary'}
-                                    className={cn('text-[9px]',
-                                      c.status === 'active' && 'bg-success/20 text-success border-success/30',
-                                      c.status === 'paused' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                                      c.status === 'ended' && 'bg-muted text-muted-foreground'
-                                    )}>
-                                    {c.status === 'active' ? 'Ativa' : c.status === 'paused' ? 'Pausada' : 'Encerrada'}
-                                  </Badge>
+                                  <Switch
+                                    checked={c.status === 'active'}
+                                    onCheckedChange={() => toggleCampaignStatus(c.id, c.status)}
+                                    className="scale-90"
+                                  />
                                 </TableCell>
                                 <TableCell className="text-xs font-medium max-w-[200px] truncate">{c.name}</TableCell>
-                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.budget_daily || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">
+                                  {editingBudget === c.id ? (
+                                    <Input
+                                      autoFocus
+                                      value={budgetValue}
+                                      onChange={e => setBudgetValue(e.target.value)}
+                                      onBlur={() => saveBudget(c.id)}
+                                      onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.id); if (e.key === 'Escape') setEditingBudget(null); }}
+                                      className="h-6 w-24 text-xs text-right ml-auto"
+                                    />
+                                  ) : (
+                                    <span
+                                      className="cursor-pointer hover:text-primary transition-colors"
+                                      onClick={() => { setEditingBudget(c.id); setBudgetValue(String(Number(c.budget_daily || 0).toFixed(2))); }}
+                                    >
+                                      {fmt(Number(c.budget_daily || 0))}
+                                      <span className="text-[9px] text-muted-foreground block">Diário</span>
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-xs text-right tabular-nums text-muted-foreground">
                                   {new Date(c.updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </TableCell>
@@ -411,12 +467,17 @@ const Trafego = () => {
                                 <TableCell className="text-xs text-right tabular-nums">{roas > 0 ? `${roas.toFixed(2)}x` : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{rev > 0 ? fmtPct(margin) : 'N/A'}</TableCell>
                                 <TableCell className="text-xs text-right tabular-nums">{spend > 0 ? fmtPct(roi) : 'N/A'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpc || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number(c.ctr || 0) > 0 ? fmtPct(Number(c.ctr || 0)) : '0,00%'}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{fmt(Number(c.cpm || 0))}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number(c.impressions || 0).toLocaleString('pt-BR')}</TableCell>
+                                <TableCell className="text-xs text-right tabular-nums">{Number(c.clicks || 0).toLocaleString('pt-BR')}</TableCell>
                               </TableRow>
                             );
                           })
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={13} className="text-center py-6">
+                            <TableCell colSpan={18} className="text-center py-6">
                               <p className="text-xs text-muted-foreground">N/A</p>
                             </TableCell>
                           </TableRow>
@@ -436,6 +497,11 @@ const Trafego = () => {
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.roas > 0 ? `${totals.roas.toFixed(2)}x` : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.revenue > 0 ? fmtPct(totals.margin) : 'N/A'}</TableCell>
                           <TableCell className="text-[10px] text-right tabular-nums">{totals.spend > 0 ? fmtPct(totals.roi) : 'N/A'}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.spend > 0 && totals.clicks > 0 ? totals.spend / totals.clicks : 0)}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions > 0 ? fmtPct((totals.clicks / totals.impressions) * 100) : '0,0%'}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{fmt(totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0)}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{totals.impressions.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell className="text-[10px] text-right tabular-nums">{totals.clicks.toLocaleString('pt-BR')}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
