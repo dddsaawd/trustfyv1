@@ -47,7 +47,7 @@ const Integracoes = () => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const webhookUrl = `https://${projectId}.supabase.co/functions/v1/webhook-checkout?user_id=${user?.id || ''}`;
 
-  // Handle Meta OAuth redirect results
+  // Handle Meta OAuth redirect results + check FB SDK login status
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('meta_success')) {
@@ -57,6 +57,30 @@ const Integracoes = () => {
     if (params.get('meta_error')) {
       toast.error(`Erro Meta Ads: ${params.get('meta_error')}`);
       window.history.replaceState({}, '', '/integracoes');
+    }
+
+    // Check FB SDK login status on load
+    const checkFBStatus = () => {
+      const FB = (window as any).FB;
+      if (FB) {
+        FB.getLoginStatus((response: any) => {
+          if (response.status === 'connected') {
+            console.log('FB SDK: User already connected', response.authResponse?.userID);
+          }
+        });
+      }
+    };
+    
+    // FB SDK may not be loaded yet, wait for it
+    if ((window as any).FB) {
+      checkFBStatus();
+    } else {
+      (window as any).fbAsyncInitOriginal = (window as any).fbAsyncInit;
+      const originalInit = (window as any).fbAsyncInit;
+      (window as any).fbAsyncInit = function() {
+        if (originalInit) originalInit();
+        checkFBStatus();
+      };
     }
   }, []);
 
