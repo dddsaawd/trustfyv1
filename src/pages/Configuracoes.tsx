@@ -12,9 +12,10 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Save, Loader2, Info, CreditCard, Truck, Receipt, PiggyBank, Percent, DollarSign, ChevronDown } from 'lucide-react';
+import { Save, Loader2, Info, CreditCard, Truck, Receipt, PiggyBank, Percent, DollarSign, ChevronDown, Layers } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface CostSettings {
   gateway_provider: string;
