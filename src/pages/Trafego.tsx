@@ -606,7 +606,7 @@ const Trafego = () => {
                 </div>
                 <div>
                   <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Período de Visualização <Info className="h-3 w-3 inline text-muted-foreground/50" /></label>
-                  <Select defaultValue="today">
+                  <Select value={datePeriod} onValueChange={handlePeriodChange}>
                     <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="max">Máximo (36 meses)</SelectItem>
