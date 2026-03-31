@@ -152,6 +152,37 @@ const Configuracoes = () => {
     if (data) setProducts(data);
   };
 
+  const fetchInstallmentRates = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('installment_rates' as any)
+      .select('installments, rate_percent')
+      .eq('user_id', user.id);
+    if (data && (data as any[]).length > 0) {
+      const rates: Record<number, number> = {};
+      for (const r of data as any[]) {
+        rates[r.installments] = Number(r.rate_percent);
+      }
+      setInstallmentRates(prev => ({ ...prev, ...rates }));
+    }
+  };
+
+  const saveInstallmentRates = async () => {
+    if (!user) return;
+    const rows = Object.entries(installmentRates).map(([inst, rate]) => ({
+      user_id: user.id,
+      installments: Number(inst),
+      rate_percent: rate,
+    }));
+    const { error } = await (supabase.from('installment_rates' as any) as any)
+      .upsert(rows, { onConflict: 'user_id,installments' });
+    if (error) {
+      toast.error('Erro ao salvar parcelas: ' + error.message);
+    } else {
+      toast.success('Taxas de parcelamento salvas!');
+    }
+  };
+
   const saveCosts = async () => {
     if (!user) return;
     setSaving(true);
