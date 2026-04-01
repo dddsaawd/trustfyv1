@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { KPICard } from '@/components/dashboard/KPICard';
+import { ManualAdSpendInput } from '@/components/dashboard/ManualAdSpendInput';
 import { useDashboardData, DateRange } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
