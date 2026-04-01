@@ -230,11 +230,50 @@ export function useDashboardData(): DashboardData {
   const changeLabel = changeLabelMap[filters.dateRange];
   const lastSyncKeyRef = useRef<string>('');
   const [adsSyncReady, setAdsSyncReady] = useState(false);
-  const [manualAdSpend, setManualAdSpendRaw] = useState<number | null>(null);
 
-  const setManualAdSpend = useCallback((v: number | null) => {
-    setManualAdSpendRaw(v);
-  }, []);
+  // Manual ad spend — persisted per date range
+  const startDate = start.split('T')[0];
+  const endDate = end.split('T')[0];
+
+  const { data: savedManualSpend, refetch: refetchManualSpend } = useQuery({
+    queryKey: ['manual-ad-spend', startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('manual_ad_spend' as any)
+        .select('date, value')
+        .gte('date', startDate)
+        .lte('date', endDate);
+      if (error) return null;
+      if (!data || (data as any[]).length === 0) return null;
+      return (data as any[]).reduce((sum: number, r: any) => sum + Number(r.value || 0), 0);
+    },
+  });
+
+  const manualAdSpend = savedManualSpend ?? null;
+
+  const setManualAdSpend = useCallback(async (v: number | null) => {
+    if (!user?.id) return;
+    if (v === null) {
+      // Remove manual entries for this date range
+      await supabase
+        .from('manual_ad_spend' as any)
+        .delete()
+        .eq('user_id', user.id)
+        .gte('date', startDate)
+        .lte('date', endDate);
+    } else {
+      // Upsert: for single-day ranges save to that date, for multi-day save to start date
+      const targetDate = startDate;
+      const { error } = await supabase
+        .from('manual_ad_spend' as any)
+        .upsert(
+          { user_id: user.id, date: targetDate, value: v, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,date' }
+        );
+      if (error) console.error('Erro ao salvar gasto manual:', error);
+    }
+    refetchManualSpend();
+  }, [user?.id, startDate, endDate, refetchManualSpend]);
 
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ['dashboard-orders', start, end],
