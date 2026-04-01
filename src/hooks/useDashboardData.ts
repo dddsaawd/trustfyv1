@@ -25,6 +25,8 @@ interface DashboardData {
   totalPending: number;
   totalRefused: number;
   adsSyncing: boolean;
+  manualAdSpend: number | null;
+  setManualAdSpend: (v: number | null) => void;
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -228,6 +230,11 @@ export function useDashboardData(): DashboardData {
   const changeLabel = changeLabelMap[filters.dateRange];
   const lastSyncKeyRef = useRef<string>('');
   const [adsSyncReady, setAdsSyncReady] = useState(false);
+  const [manualAdSpend, setManualAdSpendRaw] = useState<number | null>(null);
+
+  const setManualAdSpend = useCallback((v: number | null) => {
+    setManualAdSpendRaw(v);
+  }, []);
 
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ['dashboard-orders', start, end],
@@ -448,10 +455,13 @@ export function useDashboardData(): DashboardData {
       totalPending: 0,
       totalRefused: 0,
       adsSyncing: !adsSyncReady,
+      manualAdSpend,
+      setManualAdSpend,
     };
   }
 
-  const m = computeMetrics(orders, costSettings, Number(campaignSpendBRL || 0));
+  const effectiveAdSpend = manualAdSpend !== null ? manualAdSpend : Number(campaignSpendBRL || 0);
+  const m = computeMetrics(orders, costSettings, effectiveAdSpend);
   const pm = prevOrders ? computeMetrics(prevOrders, costSettings, Number(prevCampaignSpendBRL || 0)) : null;
 
   const pixPendingTotal = pixPending?.reduce((sum, pending) => sum + Number(pending.value || 0), 0) ?? 0;
@@ -490,5 +500,7 @@ export function useDashboardData(): DashboardData {
     totalPending: m.pendingCount,
     totalRefused: m.refusedCount,
     adsSyncing: !adsSyncReady,
+    manualAdSpend,
+    setManualAdSpend,
   };
 }

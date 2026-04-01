@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { KPICard } from '@/components/dashboard/KPICard';
+import { ManualAdSpendInput } from '@/components/dashboard/ManualAdSpendInput';
 import { useDashboardData, DateRange } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +33,7 @@ const periodOptions: { value: DateRange; label: string }[] = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const { kpis, warModeKPIs, recentOrders, isLoading, hasRealData, filters, setFilters, totalOrders, totalApproved, totalPending, totalRefused, adsSyncing } = useDashboardData();
+  const { kpis, warModeKPIs, recentOrders, isLoading, hasRealData, filters, setFilters, totalOrders, totalApproved, totalPending, totalRefused, adsSyncing, manualAdSpend, setManualAdSpend } = useDashboardData();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -151,7 +152,18 @@ const Index = () => {
           {/* KPI Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
             {kpis.map((kpi, i) => (
-              <KPICard key={i} {...kpi} index={i} syncing={kpi.label === 'Gastos com Ads' && adsSyncing} />
+              <div key={i} className="relative">
+                <KPICard {...kpi} index={i} syncing={kpi.label === 'Gastos com Ads' && adsSyncing} />
+                {kpi.label === 'Gastos com Ads' && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <ManualAdSpendInput
+                      currentValue={manualAdSpend ?? 0}
+                      isManual={manualAdSpend !== null}
+                      onSubmit={(v) => setManualAdSpend(v === -1 ? null : v)}
+                    />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
