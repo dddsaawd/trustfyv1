@@ -460,7 +460,8 @@ export function useDashboardData(): DashboardData {
     };
   }
 
-  const m = computeMetrics(orders, costSettings, Number(campaignSpendBRL || 0));
+  const effectiveAdSpend = manualAdSpend !== null ? manualAdSpend : Number(campaignSpendBRL || 0);
+  const m = computeMetrics(orders, costSettings, effectiveAdSpend);
   const pm = prevOrders ? computeMetrics(prevOrders, costSettings, Number(prevCampaignSpendBRL || 0)) : null;
 
   const pixPendingTotal = pixPending?.reduce((sum, pending) => sum + Number(pending.value || 0), 0) ?? 0;
