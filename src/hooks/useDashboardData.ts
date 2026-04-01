@@ -230,6 +230,11 @@ export function useDashboardData(): DashboardData {
   const changeLabel = changeLabelMap[filters.dateRange];
   const lastSyncKeyRef = useRef<string>('');
   const [adsSyncReady, setAdsSyncReady] = useState(false);
+  const [manualAdSpend, setManualAdSpendRaw] = useState<number | null>(null);
+
+  const setManualAdSpend = useCallback((v: number | null) => {
+    setManualAdSpendRaw(v);
+  }, []);
 
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ['dashboard-orders', start, end],
