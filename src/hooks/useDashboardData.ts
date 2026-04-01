@@ -455,6 +455,8 @@ export function useDashboardData(): DashboardData {
       totalPending: 0,
       totalRefused: 0,
       adsSyncing: !adsSyncReady,
+      manualAdSpend,
+      setManualAdSpend,
     };
   }
 
