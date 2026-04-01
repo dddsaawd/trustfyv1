@@ -25,6 +25,8 @@ interface DashboardData {
   totalPending: number;
   totalRefused: number;
   adsSyncing: boolean;
+  manualAdSpend: number | null;
+  setManualAdSpend: (v: number | null) => void;
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
