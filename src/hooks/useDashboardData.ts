@@ -500,5 +500,7 @@ export function useDashboardData(): DashboardData {
     totalPending: m.pendingCount,
     totalRefused: m.refusedCount,
     adsSyncing: !adsSyncReady,
+    manualAdSpend,
+    setManualAdSpend,
   };
 }
