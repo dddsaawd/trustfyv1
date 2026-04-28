@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getFirebaseMessaging, getToken, onMessage, VAPID_KEY } from '@/lib/firebase';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ export function usePushNotifications(userId?: string) {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [token, setToken] = useState<string | null>(null);
   const [supported, setSupported] = useState(false);
+  const tokenRequestInFlight = useRef(false);
 
   useEffect(() => {
     const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
@@ -61,11 +62,15 @@ export function usePushNotifications(userId?: string) {
     }
   }, [userId]);
 
-  const requestPermission = useCallback(async () => {
+  const requestPermission = useCallback(async (showSuccessToast = true) => {
+    if (tokenRequestInFlight.current) return token;
+
     if (!supported) {
       toast.error('Push notifications não são suportadas neste navegador.');
       return null;
     }
+
+    tokenRequestInFlight.current = true;
 
     try {
       const result = await Notification.requestPermission();
@@ -93,7 +98,9 @@ export function usePushNotifications(userId?: string) {
       if (fcmToken) {
         setToken(fcmToken);
         await registerToken(fcmToken);
-        toast.success('Notificações push ativadas! 🔔');
+        if (showSuccessToast) {
+          toast.success('Notificações push ativadas! 🔔');
+        }
         return fcmToken;
       } else {
         toast.error('Não foi possível obter token de notificação.');
@@ -103,13 +110,15 @@ export function usePushNotifications(userId?: string) {
       console.error('Error requesting push permission:', error);
       toast.error('Erro ao ativar notificações.');
       return null;
+    } finally {
+      tokenRequestInFlight.current = false;
     }
-  }, [supported, registerToken]);
+  }, [supported, registerToken, token]);
 
   // Auto-request if already granted (e.g. returning user)
   useEffect(() => {
     if (supported && userId && permission === 'granted' && !token) {
-      requestPermission();
+      requestPermission(false);
     }
   }, [supported, userId, permission, token, requestPermission]);
 
