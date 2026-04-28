@@ -17,6 +17,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   // Auto-prompt for push notification permission on first load
   useEffect(() => {
     if (user && supported && permission === 'default') {
+      const promptKey = `push-permission-prompted:${user.id}`;
+      if (sessionStorage.getItem(promptKey)) return;
+
+      sessionStorage.setItem(promptKey, 'true');
       // Small delay to not overwhelm the user right after login
       const timer = setTimeout(() => {
         requestPermission();
