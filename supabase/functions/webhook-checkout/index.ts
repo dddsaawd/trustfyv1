@@ -363,39 +363,66 @@ function mapZedyMethod(method?: string): 'pix' | 'credit_card' | 'boleto' | 'deb
 function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
   const products = zedy.products || []
   const mainProduct = products[0]
+  const itemsTotalInCents = products.reduce((sum, product) => {
+    return sum + (Number(product.priceInCents || 0) * Number(product.quantity || 1))
+  }, 0)
   const productNames = products
-    .map((product) => `${product.name || 'Produto'}${product.quantity && product.quantity > 1 ? ` (${product.quantity}x)` : ''}`)
+    .map((product) => `${cleanText(product.name) || 'Produto'}${product.quantity && product.quantity > 1 ? ` (${product.quantity}x)` : ''}`)
     .join(', ') || 'Produto'
-  const totalValue = (zedy.commission?.totalPriceInCents ?? products.reduce((sum, product) => {
-    return sum + ((product.priceInCents || 0) * (product.quantity || 1))
-  }, 0)) / 100
+  const grossValue = centsToBRL(zedy.commission?.totalPriceInCents) ?? centsToBRL(itemsTotalInCents) ?? 0
+  const productPrice = centsToBRL(mainProduct?.priceInCents)
+  const gatewayFee = centsToBRL(zedy.commission?.gatewayFeeInCents)
+  const userCommission = centsToBRL(zedy.commission?.userCommissionInCents)
+  const calculatedCommissionFee = userCommission != null ? Math.max(grossValue - userCommission, 0) : undefined
   const paymentStatus = mapZedyStatus(zedy.status)
+  const paymentMethod = mapZedyMethod(zedy.paymentMethod)
   const event: WebhookPayload['event'] = paymentStatus === 'refunded'
     ? 'order.refunded'
-    : paymentStatus === 'approved'
-      ? 'order.paid'
-      : 'order.created'
+    : paymentStatus === 'chargeback'
+      ? 'order.updated'
+      : paymentStatus === 'approved'
+        ? paymentMethod === 'pix' ? 'pix.paid' : 'order.paid'
+        : paymentMethod === 'pix' ? 'pix.generated' : 'order.created'
+
+  if (event.startsWith('pix.')) {
+    return {
+      event,
+      data: {
+        order_id: zedy.orderId,
+        order_number: zedy.orderId,
+        customer_name: cleanText(zedy.customer?.name) || 'Cliente',
+        customer_phone: cleanText(zedy.customer?.phone) || null,
+        product_name: productNames,
+        value: grossValue,
+        campaign_name: cleanText(zedy.trackingParameters?.utm_campaign) || cleanText(zedy.trackingParameters?.utm_medium) || null,
+        utm_source: cleanText(zedy.trackingParameters?.utm_source) || cleanText(zedy.trackingParameters?.src) || null,
+      },
+    }
+  }
 
   return {
     event,
     data: {
       order_number: zedy.orderId,
-      customer_name: zedy.customer?.name || 'Cliente',
-      customer_email: zedy.customer?.email || undefined,
-      customer_phone: zedy.customer?.phone || undefined,
+      customer_name: cleanText(zedy.customer?.name) || 'Cliente',
+      customer_email: cleanText(zedy.customer?.email),
+      customer_phone: cleanText(zedy.customer?.phone),
       product_name: productNames,
       product_sku: mainProduct?.id ? String(mainProduct.id) : undefined,
-      gross_value: totalValue,
-      payment_method: mapZedyMethod(zedy.paymentMethod),
+      product_price: productPrice,
+      product_cost: productPrice ?? 0,
+      gross_value: grossValue,
+      payment_method: paymentMethod,
       payment_status: paymentStatus,
-      gateway_fee: zedy.commission?.gatewayFeeInCents != null ? Number(zedy.commission.gatewayFeeInCents) / 100 : undefined,
+      gateway_fee: gatewayFee ?? calculatedCommissionFee,
       platform: 'zedy',
-      utm_source: zedy.trackingParameters?.utm_source || undefined,
-      utm_campaign: zedy.trackingParameters?.utm_campaign || undefined,
-      utm_content: zedy.trackingParameters?.utm_content || undefined,
-      utm_term: zedy.trackingParameters?.utm_term || undefined,
-      state: zedy.address?.state || undefined,
-      city: zedy.address?.city || undefined,
+      campaign_name: cleanText(zedy.trackingParameters?.utm_campaign) || cleanText(zedy.trackingParameters?.utm_medium),
+      utm_source: cleanText(zedy.trackingParameters?.utm_source) || cleanText(zedy.trackingParameters?.src),
+      utm_campaign: cleanText(zedy.trackingParameters?.utm_campaign),
+      utm_content: cleanText(zedy.trackingParameters?.utm_content),
+      utm_term: cleanText(zedy.trackingParameters?.utm_term) || cleanText(zedy.trackingParameters?.sck),
+      state: cleanText(zedy.address?.state),
+      city: cleanText(zedy.address?.city),
       created_at: zedy.approvedDate || zedy.createdAt || undefined,
     },
   }
