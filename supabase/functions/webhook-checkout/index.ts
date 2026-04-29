@@ -378,11 +378,11 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
   const paymentMethod = mapZedyMethod(zedy.paymentMethod)
   const event: WebhookPayload['event'] = paymentStatus === 'refunded'
     ? 'order.refunded'
-    : paymentStatus === 'chargeback'
-      ? 'order.updated'
-      : paymentStatus === 'approved'
-        ? 'order.paid'
-        : paymentMethod === 'pix' ? 'pix.generated' : 'order.created'
+    : paymentStatus === 'approved'
+      ? 'order.paid'
+      : paymentStatus === 'pending'
+        ? 'order.created'
+        : 'order.updated'
 
   if (event.startsWith('pix.')) {
     return {
@@ -423,12 +423,14 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
       utm_term: cleanText(zedy.trackingParameters?.utm_term) || cleanText(zedy.trackingParameters?.sck),
       state: cleanText(zedy.address?.state),
       city: cleanText(zedy.address?.city),
-      created_at: zedy.approvedDate || zedy.createdAt || undefined,
+      created_at: zedy.approvedDate || zedy.refundedAt || zedy.createdAt || undefined,
     },
   }
 }
 
-Deno.serve(async (req) => {
+export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload }
+
+export const handleWebhookCheckout = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -491,6 +493,12 @@ Deno.serve(async (req) => {
     
     // Auto-detect checkout-specific payloads and normalize
     let payload: WebhookPayload
+    const auditContext: Record<string, unknown> = {
+      audit: 'webhook_checkout_received',
+      user_id: userId,
+      raw_payload: rawPayload,
+    }
+
     if (isCorvexPayload(rawPayload)) {
       console.log('Corvex payload detected, normalizing...', rawPayload.event)
       payload = normalizeCorvexPayload(rawPayload)
@@ -500,6 +508,12 @@ Deno.serve(async (req) => {
     } else {
       payload = rawPayload as WebhookPayload
     }
+    console.log(JSON.stringify({
+      ...auditContext,
+      audit: 'webhook_checkout_normalized',
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : 'generic',
+      normalized_payload: payload,
+    }))
     
     const { event, data } = payload
 
