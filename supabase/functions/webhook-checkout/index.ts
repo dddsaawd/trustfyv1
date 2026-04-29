@@ -419,11 +419,14 @@ Deno.serve(async (req) => {
 
     const rawPayload = await req.json()
     
-    // Auto-detect Corvex payload and normalize
+    // Auto-detect checkout-specific payloads and normalize
     let payload: WebhookPayload
     if (isCorvexPayload(rawPayload)) {
       console.log('Corvex payload detected, normalizing...', rawPayload.event)
       payload = normalizeCorvexPayload(rawPayload)
+    } else if (isZedyPayload(rawPayload)) {
+      console.log('Zedy payload detected, normalizing...', rawPayload.orderId, rawPayload.status)
+      payload = normalizeZedyPayload(rawPayload)
     } else {
       payload = rawPayload as WebhookPayload
     }
