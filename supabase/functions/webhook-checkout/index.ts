@@ -831,4 +831,6 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
   }
 }
 
-Deno.serve(handleWebhookCheckout)
+if (import.meta.main) {
+  Deno.serve(handleWebhookCheckout)
+}
