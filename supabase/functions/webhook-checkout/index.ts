@@ -797,7 +797,7 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
       const order = data as WebhookOrder
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+        const pushResponse = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -810,6 +810,7 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
             data: { type: 'sale', order_id: result.id },
           }),
         })
+        await pushResponse.text()
       } catch (e) {
         console.error('Push notification trigger failed:', e)
       }
