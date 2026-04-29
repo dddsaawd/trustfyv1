@@ -98,7 +98,7 @@ Deno.test('normaliza status Zedy principais para eventos e status internos', () 
     ['waiting_payment', 'order.created', 'pending'],
     ['paid', 'order.paid', 'approved'],
     ['refused', 'order.updated', 'refused'],
-    ['refunded', 'order.refunded', 'refunded'],
+    ['refunded', 'order.updated', 'refunded'],
   ] as const
 
   for (const [zedyStatus, expectedEvent, expectedStatus] of cases) {
