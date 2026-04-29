@@ -147,10 +147,10 @@ const Integracoes = () => {
       event: 'order.created',
       data: {
         order_number: `TF-${Date.now().toString().slice(-5)}`,
-        customer_name: 'Cliente Teste',
-        customer_email: 'teste@email.com',
+        customer_name: 'João Silva',
+        customer_email: 'joao@email.com',
         customer_phone: '11999999999',
-        product_name: 'Produto Teste',
+        product_name: 'Produto Demonstração',
         gross_value: 197.90,
         product_cost: 45.00,
         gateway_fee: 9.90,
