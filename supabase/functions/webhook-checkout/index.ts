@@ -611,7 +611,7 @@ Deno.serve(async (req) => {
               user_id: userId,
               name: order.product_name,
               sku: order.product_sku || null,
-              price: order.gross_value,
+              price: order.product_price ?? order.gross_value,
               cost: order.product_cost || 0,
             })
           }
@@ -644,6 +644,7 @@ Deno.serve(async (req) => {
             utm_term: order.utm_term || null,
             state: order.state || null,
             city: order.city || null,
+            created_at: order.created_at || new Date().toISOString(),
           })
           .select()
           .single()
