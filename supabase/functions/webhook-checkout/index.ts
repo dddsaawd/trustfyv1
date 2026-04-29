@@ -12,6 +12,7 @@ interface WebhookOrder {
   customer_phone?: string
   product_name: string
   product_sku?: string
+  product_price?: number
   product_cost?: number
   gross_value: number
   payment_method?: 'pix' | 'credit_card' | 'boleto' | 'debit'
@@ -111,10 +112,14 @@ interface ZedyPayload {
   products?: Array<{
     id?: number | string
     name?: string
+    planId?: number | string
+    planName?: string
     quantity?: number
     priceInCents?: number
   }>
   trackingParameters?: {
+    src?: string | null
+    sck?: string | null
     utm_source?: string | null
     utm_campaign?: string | null
     utm_medium?: string | null
@@ -124,6 +129,7 @@ interface ZedyPayload {
   commission?: {
     totalPriceInCents?: number
     gatewayFeeInCents?: number
+    userCommissionInCents?: number
   }
   address?: {
     city?: string
@@ -186,6 +192,16 @@ function isCorvexPayload(payload: any): payload is CorvexPayload {
 
 function isZedyPayload(payload: any): payload is ZedyPayload {
   return payload?.platform === 'ZedyCheckout' && typeof payload.orderId === 'string' && typeof payload.status === 'string'
+}
+
+function centsToBRL(value?: number | null): number | undefined {
+  if (value == null || Number.isNaN(Number(value))) return undefined
+  return Math.round((Number(value) / 100) * 100) / 100
+}
+
+function cleanText(value?: string | null): string | undefined {
+  const text = value?.trim()
+  return text ? text : undefined
 }
 
 function mapCorvexStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
@@ -298,61 +314,115 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
 }
 
 function mapZedyStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
+  const normalized = status.toLowerCase().trim()
   const map: Record<string, 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'> = {
+    approved: 'approved',
     paid: 'approved',
+    completed: 'approved',
+    settled: 'approved',
+    authorized: 'approved',
+    created: 'pending',
+    pending: 'pending',
     waiting_payment: 'pending',
+    waiting: 'pending',
+    processing: 'pending',
     refused: 'refused',
+    rejected: 'refused',
+    declined: 'refused',
+    canceled: 'refused',
+    cancelled: 'refused',
+    expired: 'refused',
     refunded: 'refunded',
+    refund: 'refunded',
+    chargeback: 'chargeback',
+    dispute: 'chargeback',
   }
-  return map[status] || 'pending'
+  return map[normalized] || 'pending'
 }
 
 function mapZedyMethod(method?: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
+  const normalized = method?.toLowerCase().trim()
   const map: Record<string, 'pix' | 'credit_card' | 'boleto' | 'debit'> = {
     pix: 'pix',
+    credit: 'credit_card',
+    card: 'credit_card',
+    cc: 'credit_card',
+    credito: 'credit_card',
     credit_card: 'credit_card',
+    cartao_credito: 'credit_card',
+    cartão_credito: 'credit_card',
     boleto: 'boleto',
+    bank_slip: 'boleto',
     debit: 'debit',
+    debit_card: 'debit',
+    debito: 'debit',
   }
-  return method ? (map[method] || 'pix') : 'pix'
+  return normalized ? (map[normalized] || 'pix') : 'pix'
 }
 
 function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
   const products = zedy.products || []
   const mainProduct = products[0]
+  const itemsTotalInCents = products.reduce((sum, product) => {
+    return sum + (Number(product.priceInCents || 0) * Number(product.quantity || 1))
+  }, 0)
   const productNames = products
-    .map((product) => `${product.name || 'Produto'}${product.quantity && product.quantity > 1 ? ` (${product.quantity}x)` : ''}`)
+    .map((product) => `${cleanText(product.name) || 'Produto'}${product.quantity && product.quantity > 1 ? ` (${product.quantity}x)` : ''}`)
     .join(', ') || 'Produto'
-  const totalValue = (zedy.commission?.totalPriceInCents ?? products.reduce((sum, product) => {
-    return sum + ((product.priceInCents || 0) * (product.quantity || 1))
-  }, 0)) / 100
+  const grossValue = centsToBRL(zedy.commission?.totalPriceInCents) ?? centsToBRL(itemsTotalInCents) ?? 0
+  const productPrice = centsToBRL(mainProduct?.priceInCents)
+  const gatewayFee = centsToBRL(zedy.commission?.gatewayFeeInCents)
+  const userCommission = centsToBRL(zedy.commission?.userCommissionInCents)
+  const calculatedCommissionFee = userCommission != null ? Math.max(grossValue - userCommission, 0) : undefined
   const paymentStatus = mapZedyStatus(zedy.status)
+  const paymentMethod = mapZedyMethod(zedy.paymentMethod)
   const event: WebhookPayload['event'] = paymentStatus === 'refunded'
     ? 'order.refunded'
-    : paymentStatus === 'approved'
-      ? 'order.paid'
-      : 'order.created'
+    : paymentStatus === 'chargeback'
+      ? 'order.updated'
+      : paymentStatus === 'approved'
+        ? 'order.paid'
+        : paymentMethod === 'pix' ? 'pix.generated' : 'order.created'
+
+  if (event.startsWith('pix.')) {
+    return {
+      event,
+      data: {
+        order_id: zedy.orderId,
+        order_number: zedy.orderId,
+        customer_name: cleanText(zedy.customer?.name) || 'Cliente',
+        customer_phone: cleanText(zedy.customer?.phone) || null,
+        product_name: productNames,
+        value: grossValue,
+        campaign_name: cleanText(zedy.trackingParameters?.utm_campaign) || cleanText(zedy.trackingParameters?.utm_medium) || null,
+        utm_source: cleanText(zedy.trackingParameters?.utm_source) || cleanText(zedy.trackingParameters?.src) || null,
+      },
+    }
+  }
 
   return {
     event,
     data: {
       order_number: zedy.orderId,
-      customer_name: zedy.customer?.name || 'Cliente',
-      customer_email: zedy.customer?.email || undefined,
-      customer_phone: zedy.customer?.phone || undefined,
+      customer_name: cleanText(zedy.customer?.name) || 'Cliente',
+      customer_email: cleanText(zedy.customer?.email),
+      customer_phone: cleanText(zedy.customer?.phone),
       product_name: productNames,
       product_sku: mainProduct?.id ? String(mainProduct.id) : undefined,
-      gross_value: totalValue,
-      payment_method: mapZedyMethod(zedy.paymentMethod),
+      product_price: productPrice,
+      product_cost: productPrice ?? 0,
+      gross_value: grossValue,
+      payment_method: paymentMethod,
       payment_status: paymentStatus,
-      gateway_fee: zedy.commission?.gatewayFeeInCents != null ? Number(zedy.commission.gatewayFeeInCents) / 100 : undefined,
+      gateway_fee: gatewayFee ?? calculatedCommissionFee,
       platform: 'zedy',
-      utm_source: zedy.trackingParameters?.utm_source || undefined,
-      utm_campaign: zedy.trackingParameters?.utm_campaign || undefined,
-      utm_content: zedy.trackingParameters?.utm_content || undefined,
-      utm_term: zedy.trackingParameters?.utm_term || undefined,
-      state: zedy.address?.state || undefined,
-      city: zedy.address?.city || undefined,
+      campaign_name: cleanText(zedy.trackingParameters?.utm_campaign) || cleanText(zedy.trackingParameters?.utm_medium),
+      utm_source: cleanText(zedy.trackingParameters?.utm_source) || cleanText(zedy.trackingParameters?.src),
+      utm_campaign: cleanText(zedy.trackingParameters?.utm_campaign),
+      utm_content: cleanText(zedy.trackingParameters?.utm_content),
+      utm_term: cleanText(zedy.trackingParameters?.utm_term) || cleanText(zedy.trackingParameters?.sck),
+      state: cleanText(zedy.address?.state),
+      city: cleanText(zedy.address?.city),
       created_at: zedy.approvedDate || zedy.createdAt || undefined,
     },
   }
@@ -541,7 +611,7 @@ Deno.serve(async (req) => {
               user_id: userId,
               name: order.product_name,
               sku: order.product_sku || null,
-              price: order.gross_value,
+              price: order.product_price ?? order.gross_value,
               cost: order.product_cost || 0,
             })
           }
@@ -574,6 +644,7 @@ Deno.serve(async (req) => {
             utm_term: order.utm_term || null,
             state: order.state || null,
             city: order.city || null,
+            created_at: order.created_at || new Date().toISOString(),
           })
           .select()
           .single()
