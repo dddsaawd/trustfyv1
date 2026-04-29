@@ -430,7 +430,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
 
 export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload }
 
-export const handleWebhookCheckout = async (req: Request): Promise<Response> => {
+export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -447,9 +447,10 @@ export const handleWebhookCheckout = async (req: Request): Promise<Response> => 
       })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = supabaseOverride || createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
     // Verify user exists
     const { data: profile } = await supabase
