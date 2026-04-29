@@ -631,9 +631,7 @@ export const handleWebhookCheckout = async (req: Request): Promise<Response> => 
           }
         }
 
-        const { data: newOrder, error: orderError } = await supabase
-          .from('orders')
-          .insert({
+        const orderRecord = {
             user_id: userId,
             order_number: order.order_number,
             customer_name: order.customer_name,
@@ -659,7 +657,11 @@ export const handleWebhookCheckout = async (req: Request): Promise<Response> => 
             state: order.state || null,
             city: order.city || null,
             created_at: order.created_at || new Date().toISOString(),
-          })
+          }
+
+        const { data: newOrder, error: orderError } = await supabase
+          .from('orders')
+          .upsert(orderRecord, { onConflict: 'user_id,order_number' })
           .select()
           .single()
 
@@ -804,6 +806,17 @@ export const handleWebhookCheckout = async (req: Request): Promise<Response> => 
       }
     }
 
+    console.log(JSON.stringify({
+      audit: 'webhook_checkout_persisted',
+      user_id: userId,
+      event,
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : 'generic',
+      external_order_id: (data as any)?.order_number || (data as any)?.order_id || null,
+      created_sale_id: result?.id || null,
+      persisted_table: ['pix.generated', 'pix.paid', 'pix.expired'].includes(event) ? 'pix_pending' : event.startsWith('product.') ? 'products' : 'orders',
+      normalized_payload: payload,
+    }))
+
     return new Response(JSON.stringify({ success: true, event, data: result }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -815,4 +828,6 @@ export const handleWebhookCheckout = async (req: Request): Promise<Response> => 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-})
+}
+
+Deno.serve(handleWebhookCheckout)
