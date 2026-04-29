@@ -376,13 +376,11 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
   const calculatedCommissionFee = userCommission != null ? Math.max(grossValue - userCommission, 0) : undefined
   const paymentStatus = mapZedyStatus(zedy.status)
   const paymentMethod = mapZedyMethod(zedy.paymentMethod)
-  const event: WebhookPayload['event'] = paymentStatus === 'refunded'
-    ? 'order.refunded'
-    : paymentStatus === 'chargeback'
-      ? 'order.updated'
-      : paymentStatus === 'approved'
-        ? 'order.paid'
-        : paymentMethod === 'pix' ? 'pix.generated' : 'order.created'
+  const event: WebhookPayload['event'] = paymentStatus === 'approved'
+      ? 'order.paid'
+      : paymentStatus === 'pending'
+        ? 'order.created'
+        : 'order.updated'
 
   if (event.startsWith('pix.')) {
     return {
@@ -423,12 +421,14 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
       utm_term: cleanText(zedy.trackingParameters?.utm_term) || cleanText(zedy.trackingParameters?.sck),
       state: cleanText(zedy.address?.state),
       city: cleanText(zedy.address?.city),
-      created_at: zedy.approvedDate || zedy.createdAt || undefined,
+      created_at: zedy.approvedDate || zedy.refundedAt || zedy.createdAt || undefined,
     },
   }
 }
 
-Deno.serve(async (req) => {
+export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload }
+
+export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -445,9 +445,10 @@ Deno.serve(async (req) => {
       })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = supabaseOverride || createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
     // Verify user exists
     const { data: profile } = await supabase
@@ -491,6 +492,12 @@ Deno.serve(async (req) => {
     
     // Auto-detect checkout-specific payloads and normalize
     let payload: WebhookPayload
+    const auditContext: Record<string, unknown> = {
+      audit: 'webhook_checkout_received',
+      user_id: userId,
+      raw_payload: rawPayload,
+    }
+
     if (isCorvexPayload(rawPayload)) {
       console.log('Corvex payload detected, normalizing...', rawPayload.event)
       payload = normalizeCorvexPayload(rawPayload)
@@ -500,6 +507,12 @@ Deno.serve(async (req) => {
     } else {
       payload = rawPayload as WebhookPayload
     }
+    console.log(JSON.stringify({
+      ...auditContext,
+      audit: 'webhook_checkout_normalized',
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : 'generic',
+      normalized_payload: payload,
+    }))
     
     const { event, data } = payload
 
@@ -570,11 +583,14 @@ Deno.serve(async (req) => {
 
         const netProfit = grossValue - productCost - gatewayFee - adsCost - shippingCost - tax
 
-        if (event === 'order.updated') {
-          // Try to update existing order
-          const { data: updated, error } = await supabase
+        // Try to update existing order first to avoid duplicate sales when checkout retries the webhook
+        const { data: updated } = await supabase
             .from('orders')
             .update({
+              customer_name: order.customer_name,
+              customer_email: order.customer_email || null,
+              customer_phone: order.customer_phone || null,
+              product_name: order.product_name,
               payment_status: order.payment_status || 'pending',
               payment_method: paymentMethod,
               installments: installments,
@@ -585,16 +601,23 @@ Deno.serve(async (req) => {
               shipping_cost: shippingCost,
               tax: tax,
               net_profit: netProfit,
+              platform: order.platform || null,
+              campaign_name: order.campaign_name || null,
+              utm_source: order.utm_source || null,
+              utm_campaign: order.utm_campaign || null,
+              utm_content: order.utm_content || null,
+              utm_term: order.utm_term || null,
+              state: order.state || null,
+              city: order.city || null,
             })
             .eq('order_number', order.order_number)
             .eq('user_id', userId)
             .select()
             .single()
 
-          if (updated) {
-            result = updated
-            break
-          }
+        if (updated) {
+          result = updated
+          break
         }
 
         // Ensure product exists
@@ -617,9 +640,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        const { data: newOrder, error: orderError } = await supabase
-          .from('orders')
-          .insert({
+        const orderRecord = {
             user_id: userId,
             order_number: order.order_number,
             customer_name: order.customer_name,
@@ -645,7 +666,11 @@ Deno.serve(async (req) => {
             state: order.state || null,
             city: order.city || null,
             created_at: order.created_at || new Date().toISOString(),
-          })
+          }
+
+        const { data: newOrder, error: orderError } = await supabase
+          .from('orders')
+          .insert(orderRecord)
           .select()
           .single()
 
@@ -772,7 +797,7 @@ Deno.serve(async (req) => {
       const order = data as WebhookOrder
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+        const pushResponse = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -785,10 +810,22 @@ Deno.serve(async (req) => {
             data: { type: 'sale', order_id: result.id },
           }),
         })
+        await pushResponse.text()
       } catch (e) {
         console.error('Push notification trigger failed:', e)
       }
     }
+
+    console.log(JSON.stringify({
+      audit: 'webhook_checkout_persisted',
+      user_id: userId,
+      event,
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : 'generic',
+      external_order_id: (data as any)?.order_number || (data as any)?.order_id || null,
+      created_sale_id: result?.id || null,
+      persisted_table: ['pix.generated', 'pix.paid', 'pix.expired'].includes(event) ? 'pix_pending' : event.startsWith('product.') ? 'products' : 'orders',
+      normalized_payload: payload,
+    }))
 
     return new Response(JSON.stringify({ success: true, event, data: result }), {
       status: 200,
@@ -796,9 +833,14 @@ Deno.serve(async (req) => {
     })
   } catch (error) {
     console.error('Webhook error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : String(error)
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-})
+}
+
+if (import.meta.main) {
+  Deno.serve(handleWebhookCheckout)
+}
