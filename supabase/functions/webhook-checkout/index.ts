@@ -194,6 +194,16 @@ function isZedyPayload(payload: any): payload is ZedyPayload {
   return payload?.platform === 'ZedyCheckout' && typeof payload.orderId === 'string' && typeof payload.status === 'string'
 }
 
+function centsToBRL(value?: number | null): number | undefined {
+  if (value == null || Number.isNaN(Number(value))) return undefined
+  return Math.round((Number(value) / 100) * 100) / 100
+}
+
+function cleanText(value?: string | null): string | undefined {
+  const text = value?.trim()
+  return text ? text : undefined
+}
+
 function mapCorvexStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
   const map: Record<string, 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'> = {
     'approved': 'approved',
@@ -304,23 +314,50 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
 }
 
 function mapZedyStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
+  const normalized = status.toLowerCase().trim()
   const map: Record<string, 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'> = {
+    approved: 'approved',
     paid: 'approved',
+    completed: 'approved',
+    settled: 'approved',
+    authorized: 'approved',
+    created: 'pending',
+    pending: 'pending',
     waiting_payment: 'pending',
+    waiting: 'pending',
+    processing: 'pending',
     refused: 'refused',
+    rejected: 'refused',
+    declined: 'refused',
+    canceled: 'refused',
+    cancelled: 'refused',
+    expired: 'refused',
     refunded: 'refunded',
+    refund: 'refunded',
+    chargeback: 'chargeback',
+    dispute: 'chargeback',
   }
-  return map[status] || 'pending'
+  return map[normalized] || 'pending'
 }
 
 function mapZedyMethod(method?: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
+  const normalized = method?.toLowerCase().trim()
   const map: Record<string, 'pix' | 'credit_card' | 'boleto' | 'debit'> = {
     pix: 'pix',
+    credit: 'credit_card',
+    card: 'credit_card',
+    cc: 'credit_card',
+    credito: 'credit_card',
     credit_card: 'credit_card',
+    cartao_credito: 'credit_card',
+    cartão_credito: 'credit_card',
     boleto: 'boleto',
+    bank_slip: 'boleto',
     debit: 'debit',
+    debit_card: 'debit',
+    debito: 'debit',
   }
-  return method ? (map[method] || 'pix') : 'pix'
+  return normalized ? (map[normalized] || 'pix') : 'pix'
 }
 
 function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
