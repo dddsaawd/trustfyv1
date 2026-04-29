@@ -94,6 +94,44 @@ interface CorvexPayload {
   paidAt?: string
 }
 
+// Zedy payload format
+interface ZedyPayload {
+  orderId: string
+  platform?: string
+  paymentMethod?: string
+  status: string
+  createdAt?: string
+  approvedDate?: string | null
+  refundedAt?: string | null
+  customer?: {
+    name?: string
+    email?: string
+    phone?: string
+  }
+  products?: Array<{
+    id?: number | string
+    name?: string
+    quantity?: number
+    priceInCents?: number
+  }>
+  trackingParameters?: {
+    utm_source?: string | null
+    utm_campaign?: string | null
+    utm_medium?: string | null
+    utm_content?: string | null
+    utm_term?: string | null
+  }
+  commission?: {
+    totalPriceInCents?: number
+    gatewayFeeInCents?: number
+  }
+  address?: {
+    city?: string
+    state?: string
+  }
+  isTest?: boolean
+}
+
 // Anti-fraud: blocked name patterns
 const BLOCKED_NAMES = [
   'teste', 'test', 'fulano', 'ciclano', 'beltrano', 'ninguem', 'ninguém',
@@ -144,6 +182,10 @@ function isSuspiciousName(name: string): { suspicious: boolean; reason: string }
 
 function isCorvexPayload(payload: any): payload is CorvexPayload {
   return payload.event && typeof payload.event === 'string' && payload.event.startsWith('corvex.')
+}
+
+function isZedyPayload(payload: any): payload is ZedyPayload {
+  return payload?.platform === 'ZedyCheckout' && typeof payload.orderId === 'string' && typeof payload.status === 'string'
 }
 
 function mapCorvexStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
@@ -252,6 +294,67 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
   return {
     event: normalizedEvent as WebhookPayload['event'],
     data: order,
+  }
+}
+
+function mapZedyStatus(status: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
+  const map: Record<string, 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'> = {
+    paid: 'approved',
+    waiting_payment: 'pending',
+    refused: 'refused',
+    refunded: 'refunded',
+  }
+  return map[status] || 'pending'
+}
+
+function mapZedyMethod(method?: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
+  const map: Record<string, 'pix' | 'credit_card' | 'boleto' | 'debit'> = {
+    pix: 'pix',
+    credit_card: 'credit_card',
+    boleto: 'boleto',
+    debit: 'debit',
+  }
+  return method ? (map[method] || 'pix') : 'pix'
+}
+
+function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
+  const products = zedy.products || []
+  const mainProduct = products[0]
+  const productNames = products
+    .map((product) => `${product.name || 'Produto'}${product.quantity && product.quantity > 1 ? ` (${product.quantity}x)` : ''}`)
+    .join(', ') || 'Produto'
+  const totalValue = (zedy.commission?.totalPriceInCents ?? products.reduce((sum, product) => {
+    return sum + ((product.priceInCents || 0) * (product.quantity || 1))
+  }, 0)) / 100
+  const paymentStatus = mapZedyStatus(zedy.status)
+  const event: WebhookPayload['event'] = paymentStatus === 'refunded'
+    ? 'order.refunded'
+    : paymentStatus === 'approved'
+      ? 'order.paid'
+      : 'order.created'
+
+  return {
+    event,
+    data: {
+      order_number: zedy.orderId,
+      customer_name: zedy.customer?.name || 'Cliente',
+      customer_email: zedy.customer?.email || undefined,
+      customer_phone: zedy.customer?.phone || undefined,
+      product_name: productNames,
+      product_sku: mainProduct?.id ? String(mainProduct.id) : undefined,
+      gross_value: totalValue,
+      payment_method: mapZedyMethod(zedy.paymentMethod),
+      payment_status: paymentStatus,
+      gateway_fee: zedy.commission?.gatewayFeeInCents != null ? Number(zedy.commission.gatewayFeeInCents) / 100 : undefined,
+      platform: 'zedy',
+      utm_source: zedy.trackingParameters?.utm_source || undefined,
+      utm_campaign: zedy.trackingParameters?.utm_campaign || undefined,
+      utm_content: zedy.trackingParameters?.utm_content || undefined,
+      utm_term: zedy.trackingParameters?.utm_term || undefined,
+      state: zedy.address?.state || undefined,
+      city: zedy.address?.city || undefined,
+      created_at: zedy.approvedDate || zedy.createdAt || undefined,
+    },
   }
 }
 
