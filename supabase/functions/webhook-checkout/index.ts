@@ -12,6 +12,7 @@ interface WebhookOrder {
   customer_phone?: string
   product_name: string
   product_sku?: string
+  product_price?: number
   product_cost?: number
   gross_value: number
   payment_method?: 'pix' | 'credit_card' | 'boleto' | 'debit'
@@ -111,10 +112,14 @@ interface ZedyPayload {
   products?: Array<{
     id?: number | string
     name?: string
+    planId?: number | string
+    planName?: string
     quantity?: number
     priceInCents?: number
   }>
   trackingParameters?: {
+    src?: string | null
+    sck?: string | null
     utm_source?: string | null
     utm_campaign?: string | null
     utm_medium?: string | null
@@ -124,6 +129,7 @@ interface ZedyPayload {
   commission?: {
     totalPriceInCents?: number
     gatewayFeeInCents?: number
+    userCommissionInCents?: number
   }
   address?: {
     city?: string
