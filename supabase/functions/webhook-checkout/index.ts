@@ -585,11 +585,14 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
 
         const netProfit = grossValue - productCost - gatewayFee - adsCost - shippingCost - tax
 
-        if (event === 'order.updated') {
-          // Try to update existing order
-          const { data: updated, error } = await supabase
+        // Try to update existing order first to avoid duplicate sales when checkout retries the webhook
+        const { data: updated } = await supabase
             .from('orders')
             .update({
+              customer_name: order.customer_name,
+              customer_email: order.customer_email || null,
+              customer_phone: order.customer_phone || null,
+              product_name: order.product_name,
               payment_status: order.payment_status || 'pending',
               payment_method: paymentMethod,
               installments: installments,
@@ -600,16 +603,23 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
               shipping_cost: shippingCost,
               tax: tax,
               net_profit: netProfit,
+              platform: order.platform || null,
+              campaign_name: order.campaign_name || null,
+              utm_source: order.utm_source || null,
+              utm_campaign: order.utm_campaign || null,
+              utm_content: order.utm_content || null,
+              utm_term: order.utm_term || null,
+              state: order.state || null,
+              city: order.city || null,
             })
             .eq('order_number', order.order_number)
             .eq('user_id', userId)
             .select()
             .single()
 
-          if (updated) {
-            result = updated
-            break
-          }
+        if (updated) {
+          result = updated
+          break
         }
 
         // Ensure product exists
@@ -662,7 +672,7 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
 
         const { data: newOrder, error: orderError } = await supabase
           .from('orders')
-          .upsert(orderRecord, { onConflict: 'user_id,order_number' })
+          .insert(orderRecord)
           .select()
           .single()
 
