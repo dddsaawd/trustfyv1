@@ -381,7 +381,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
     : paymentStatus === 'chargeback'
       ? 'order.updated'
       : paymentStatus === 'approved'
-        ? paymentMethod === 'pix' ? 'pix.paid' : 'order.paid'
+        ? 'order.paid'
         : paymentMethod === 'pix' ? 'pix.generated' : 'order.created'
 
   if (event.startsWith('pix.')) {
