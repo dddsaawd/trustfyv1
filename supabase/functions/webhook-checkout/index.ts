@@ -376,9 +376,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
   const calculatedCommissionFee = userCommission != null ? Math.max(grossValue - userCommission, 0) : undefined
   const paymentStatus = mapZedyStatus(zedy.status)
   const paymentMethod = mapZedyMethod(zedy.paymentMethod)
-  const event: WebhookPayload['event'] = paymentStatus === 'refunded'
-    ? 'order.refunded'
-    : paymentStatus === 'approved'
+  const event: WebhookPayload['event'] = paymentStatus === 'approved'
       ? 'order.paid'
       : paymentStatus === 'pending'
         ? 'order.created'
