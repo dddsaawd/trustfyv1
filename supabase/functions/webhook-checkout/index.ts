@@ -542,9 +542,12 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
         const order = data as WebhookOrder
         const grossValue = order.gross_value || 0
 
-        // Use webhook product_cost only if > 0; otherwise look up the registered product cost
-        let productCost = order.product_cost && order.product_cost > 0 ? order.product_cost : 0
-        if (productCost === 0 && order.product_name) {
+        // Always use the registered product cost from the products table.
+        // We ignore product_cost coming from the checkout webhook because some
+        // gateways (e.g. Zedy) send the sale price as "cost", which destroys margin.
+        // If the product is not registered or has cost = 0, treat as 0 (real margin).
+        let productCost = 0
+        if (order.product_name) {
           const { data: registeredProduct } = await supabase
             .from('products')
             .select('cost')
