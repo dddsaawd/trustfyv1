@@ -408,7 +408,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
       product_name: productNames,
       product_sku: mainProduct?.id ? String(mainProduct.id) : undefined,
       product_price: productPrice,
-      product_cost: productPrice ?? 0,
+      product_cost: 0,
       gross_value: grossValue,
       payment_method: paymentMethod,
       payment_status: paymentStatus,
