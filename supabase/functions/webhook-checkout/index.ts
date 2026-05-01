@@ -649,7 +649,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
               name: order.product_name,
               sku: order.product_sku || null,
               price: order.product_price ?? order.gross_value,
-              cost: order.product_cost || 0,
+              cost: 0, // user must set real cost manually in Products page
             })
           }
         }
