@@ -428,7 +428,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
 
 export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload }
 
-export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any): Promise<Response> => {
+export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOverride?: any): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -445,21 +445,10 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
       })
     }
 
-    const supabaseUrlEnv = Deno.env.get('SUPABASE_URL')
-    const supabaseKeyEnv = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    console.log('[webhook] env check', {
-      hasUrl: !!supabaseUrlEnv,
-      hasKey: !!supabaseKeyEnv,
-      createClientType: typeof createClient,
-    })
-    const supabase = supabaseOverride || createClient(supabaseUrlEnv!, supabaseKeyEnv!)
-    console.log('[webhook] supabase client', {
-      type: typeof supabase,
-      hasFrom: typeof supabase?.from,
-      keys: supabase ? Object.keys(supabase).slice(0, 20) : null,
-      ctor: supabase?.constructor?.name,
-      proto: supabase ? Object.getOwnPropertyNames(Object.getPrototypeOf(supabase) || {}).slice(0, 20) : null,
-    })
+    const supabase = supabaseOverride || createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
     // Verify user exists
     const { data: profile } = await supabase
