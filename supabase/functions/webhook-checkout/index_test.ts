@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { handleWebhookCheckout, normalizeZedyPayload } from './index.ts'
+import { handleWebhookCheckoutWithClient as handleWebhookCheckout, normalizeZedyPayload } from './index.ts'
 
 const USER_ID = '239cf99c-a405-4624-80fb-b7d1f3026a20'
 

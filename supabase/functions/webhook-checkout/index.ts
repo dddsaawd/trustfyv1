@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -428,7 +428,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
 
 export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload }
 
-export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any): Promise<Response> => {
+export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOverride?: any): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -841,6 +841,6 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
   }
 }
 
-if (import.meta.main) {
-  Deno.serve(handleWebhookCheckout)
-}
+export const handleWebhookCheckout = (req: Request): Promise<Response> => handleWebhookCheckoutWithClient(req)
+
+Deno.serve(handleWebhookCheckout)
