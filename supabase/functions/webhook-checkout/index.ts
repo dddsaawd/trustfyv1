@@ -445,10 +445,18 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
       })
     }
 
-    const supabase = supabaseOverride || createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
+    const supabaseUrlEnv = Deno.env.get('SUPABASE_URL')
+    const supabaseKeyEnv = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    console.log('[webhook] env check', {
+      hasUrl: !!supabaseUrlEnv,
+      hasKey: !!supabaseKeyEnv,
+      createClientType: typeof createClient,
+    })
+    const supabase = supabaseOverride || createClient(supabaseUrlEnv!, supabaseKeyEnv!)
+    console.log('[webhook] supabase client', {
+      type: typeof supabase,
+      hasFrom: typeof supabase?.from,
+    })
 
     // Verify user exists
     const { data: profile } = await supabase
