@@ -408,7 +408,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
       product_name: productNames,
       product_sku: mainProduct?.id ? String(mainProduct.id) : undefined,
       product_price: productPrice,
-      product_cost: productPrice ?? 0,
+      product_cost: 0,
       gross_value: grossValue,
       payment_method: paymentMethod,
       payment_status: paymentStatus,
@@ -542,8 +542,19 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
         const order = data as WebhookOrder
         const grossValue = order.gross_value || 0
 
-        // Use webhook values if provided, otherwise calculate from cost_settings
-        const productCost = order.product_cost ?? 0
+        // Use webhook product_cost only if > 0; otherwise look up the registered product cost
+        let productCost = order.product_cost && order.product_cost > 0 ? order.product_cost : 0
+        if (productCost === 0 && order.product_name) {
+          const { data: registeredProduct } = await supabase
+            .from('products')
+            .select('cost')
+            .eq('user_id', userId)
+            .eq('name', order.product_name)
+            .maybeSingle()
+          if (registeredProduct && Number(registeredProduct.cost) > 0) {
+            productCost = Number(registeredProduct.cost)
+          }
+        }
         const installments = order.installments ?? 1
         const paymentMethod = order.payment_method || 'pix'
         
