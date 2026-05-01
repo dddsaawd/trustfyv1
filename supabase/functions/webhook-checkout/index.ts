@@ -456,6 +456,9 @@ export const handleWebhookCheckout = async (req: Request, supabaseOverride?: any
     console.log('[webhook] supabase client', {
       type: typeof supabase,
       hasFrom: typeof supabase?.from,
+      keys: supabase ? Object.keys(supabase).slice(0, 20) : null,
+      ctor: supabase?.constructor?.name,
+      proto: supabase ? Object.getOwnPropertyNames(Object.getPrototypeOf(supabase) || {}).slice(0, 20) : null,
     })
 
     // Verify user exists
