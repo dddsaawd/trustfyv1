@@ -11,6 +11,10 @@ interface FCMMessage {
   data?: Record<string, string>
 }
 
+function getAppUrl() {
+  return Deno.env.get('APP_URL') || Deno.env.get('SITE_URL') || 'https://trustfy.online'
+}
+
 async function getAccessToken(serviceAccount: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
   const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
@@ -65,6 +69,7 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
 }
 
 async function sendFCMv1(projectId: string, accessToken: string, deviceToken: string, message: FCMMessage) {
+  const appUrl = getAppUrl()
   const res = await fetch(
     `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
     {
@@ -79,9 +84,19 @@ async function sendFCMv1(projectId: string, accessToken: string, deviceToken: st
           notification: { title: message.title, body: message.body },
           data: message.data || {},
           webpush: {
+            headers: {
+              Urgency: 'high',
+              TTL: '3600',
+            },
+            fcm_options: {
+              link: appUrl,
+            },
             notification: {
-              icon: '/icons/icon-192.png',
-              badge: '/icons/icon-72.png',
+              icon: `${appUrl}/icons/icon-192.png`,
+              badge: `${appUrl}/icons/icon-192.png`,
+              tag: message.data?.type || 'trustfy-push',
+              renotify: true,
+              requireInteraction: true,
             },
           },
         },
@@ -91,10 +106,11 @@ async function sendFCMv1(projectId: string, accessToken: string, deviceToken: st
 
   const result = await res.json()
   if (!res.ok) {
-    console.error('FCM send error:', result)
-    return { success: false, error: result }
+    console.error('FCM send error:', JSON.stringify(result))
+    return { success: false, error: result, token: deviceToken }
   }
-  return { success: true, data: result }
+  console.log('FCM send success:', JSON.stringify({ name: result?.name, tokenPrefix: deviceToken.slice(0, 12) }))
+  return { success: true, data: result, token: deviceToken }
 }
 
 Deno.serve(async (req) => {
@@ -116,7 +132,6 @@ Deno.serve(async (req) => {
       serviceAccount = JSON.parse(JSON.parse(serviceAccountJson))
     }
 
-    console.log('SA keys:', Object.keys(serviceAccount))
     if (!serviceAccount.private_key) {
       throw new Error('private_key missing from service account. Keys found: ' + Object.keys(serviceAccount).join(', '))
     }
@@ -143,7 +158,11 @@ Deno.serve(async (req) => {
       const platforms = Array.isArray(platform_filter) ? platform_filter : [platform_filter]
       query = query.in('platform', platforms)
     }
-    const { data: devices } = await query
+    const { data: devices, error: devicesError } = await query
+
+    if (devicesError) {
+      throw new Error(`Failed to load devices: ${devicesError.message}`)
+    }
 
     if (!devices || devices.length === 0) {
       return new Response(JSON.stringify({
@@ -163,6 +182,30 @@ Deno.serve(async (req) => {
     )
 
     const sent = results.filter(r => r.status === 'fulfilled' && (r as any).value?.success).length
+    const invalidTokens = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && !r.value?.success)
+      .filter(r => {
+        const code = r.value?.error?.error?.details?.[0]?.errorCode || r.value?.error?.error?.status || ''
+        return ['UNREGISTERED', 'INVALID_ARGUMENT', 'NOT_FOUND'].includes(code)
+      })
+      .map(r => r.value.token)
+
+    if (invalidTokens.length > 0) {
+      await supabase
+        .from('user_devices')
+        .update({ active: false })
+        .in('device_token', invalidTokens)
+    }
+
+    console.log('Push delivery summary:', JSON.stringify({
+      user_id,
+      platform_filter: platform_filter || null,
+      total: devices.length,
+      sent,
+      failed: devices.length - sent,
+      invalidated: invalidTokens.length,
+      platforms: devices.map(d => d.platform),
+    }))
 
     // Save notification in DB
     await supabase.from('notifications').insert({
