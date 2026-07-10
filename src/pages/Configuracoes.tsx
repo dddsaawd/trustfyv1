@@ -563,21 +563,32 @@ const Configuracoes = () => {
             <CardContent className="space-y-4 max-w-md">
               <div className="space-y-1.5">
                 <Label className="text-xs">Meta de Faturamento ($)</Label>
-                <Input defaultValue="30000" className="h-8 text-xs bg-secondary" />
+                <Input type="number" value={goals.revenue}
+                  onChange={(e) => setGoals(g => ({ ...g, revenue: parseFloat(e.target.value) || 0 }))}
+                  className="h-8 text-xs bg-secondary" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Meta de Lucro ($)</Label>
-                <Input defaultValue="10000" className="h-8 text-xs bg-secondary" />
+                <Input type="number" value={goals.profit}
+                  onChange={(e) => setGoals(g => ({ ...g, profit: parseFloat(e.target.value) || 0 }))}
+                  className="h-8 text-xs bg-secondary" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Meta de Vendas</Label>
-                <Input defaultValue="150" className="h-8 text-xs bg-secondary" />
+                <Input type="number" value={goals.sales}
+                  onChange={(e) => setGoals(g => ({ ...g, sales: parseInt(e.target.value) || 0 }))}
+                  className="h-8 text-xs bg-secondary" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">ROAS Mínimo</Label>
-                <Input defaultValue="3.0" className="h-8 text-xs bg-secondary" />
+                <Input type="number" step="0.1" value={goals.roas}
+                  onChange={(e) => setGoals(g => ({ ...g, roas: parseFloat(e.target.value) || 0 }))}
+                  className="h-8 text-xs bg-secondary" />
               </div>
-              <Button size="sm" className="text-xs">Salvar Metas</Button>
+              <Button size="sm" className="text-xs" onClick={saveGoals} disabled={savingGoals}>
+                {savingGoals ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+                Salvar Metas
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
