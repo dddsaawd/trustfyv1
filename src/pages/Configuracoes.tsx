@@ -598,6 +598,39 @@ const Configuracoes = () => {
           <Card className="border-border">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Preferências de Notificação</CardTitle></CardHeader>
             <CardContent className="space-y-4 max-w-md">
+              <div className="rounded-md border border-border bg-secondary/40 p-3 space-y-2">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Testar notificação no iPhone 📱</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Dispara um push imediato apenas para os iPhones registrados na sua conta.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={async () => {
+                    if (!user?.id) return;
+                    const t = toast.loading('Enviando push para iPhone...');
+                    const { data, error } = await supabase.functions.invoke('send-push-notification', {
+                      body: {
+                        user_id: user.id,
+                        title: '✅ Teste TRUSTFY',
+                        body: 'Notificação de teste recebida no seu iPhone!',
+                        platform_filter: 'ios',
+                        data: { type: 'test' },
+                      },
+                    });
+                    toast.dismiss(t);
+                    if (error) return toast.error('Erro ao enviar: ' + error.message);
+                    const sent = (data as any)?.sent ?? 0;
+                    if (sent > 0) toast.success(`Push enviado para ${sent} iPhone(s)!`);
+                    else toast.error((data as any)?.message || 'Nenhum iPhone registrado. Instale o app na Tela de Início pelo iPhone primeiro.');
+                  }}
+                >
+                  Enviar push de teste (iPhone)
+                </Button>
+              </div>
               {[
                 { label: 'Nova venda aprovada', desc: 'Push ao confirmar pagamento' },
                 { label: 'Pix gerado', desc: 'Notificar quando pix for gerado' },
