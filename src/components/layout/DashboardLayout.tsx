@@ -12,7 +12,8 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user } = useAuth();
-  const { permission, supported, requestPermission } = usePushNotifications(user?.id);
+  const { permission, supported, iosNeedsInstall, requestPermission } =
+    usePushNotifications(user?.id);
 
   // Auto-prompt for push notification permission on first load
   useEffect(() => {
@@ -28,6 +29,24 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       return () => clearTimeout(timer);
     }
   }, [user, supported, permission, requestPermission]);
+
+  // iOS: show a one-time hint asking the user to install to Home Screen
+  useEffect(() => {
+    if (!user || !iosNeedsInstall) return;
+    const key = `ios-install-hint:${user.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, 'true');
+    const timer = setTimeout(() => {
+      import('sonner').then(({ toast }) =>
+        toast.message('📱 Para receber notificações no iPhone', {
+          description:
+            'Toque em Compartilhar (ícone ⬆️) → "Adicionar à Tela de Início" e abra o TRUSTFY pelo ícone instalado.',
+          duration: 10000,
+        })
+      );
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [user, iosNeedsInstall]);
 
   return (
     <SidebarProvider>
