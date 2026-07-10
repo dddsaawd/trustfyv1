@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatUSD } from '@/lib/currency';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -299,15 +300,15 @@ const Configuracoes = () => {
                   label="Taxa Fixa Pix"
                   tooltip="Valor fixo cobrado por transação Pix"
                   icon={DollarSign}
-                  suffix="R$"
+                  suffix="$"
                   value={costs.gateway_pix_fixed}
                   onChange={(v) => updateCost('gateway_pix_fixed', v)}
                 />
                 <CostField
                   label="Taxa Fixa Cartão"
-                  tooltip="Valor fixo cobrado por transação no cartão (ex: R$ 0,39)"
+                  tooltip="Valor fixo cobrado por transação no cartão (ex: $0.07)"
                   icon={DollarSign}
-                  suffix="R$"
+                  suffix="$"
                   value={costs.gateway_fee_fixed}
                   onChange={(v) => updateCost('gateway_fee_fixed', v)}
                 />
@@ -315,7 +316,7 @@ const Configuracoes = () => {
                   label="Taxa Boleto"
                   tooltip="Valor fixo por boleto gerado"
                   icon={Receipt}
-                  suffix="R$"
+                  suffix="$"
                   value={costs.boleto_fee}
                   onChange={(v) => updateCost('boleto_fee', v)}
                 />
@@ -379,7 +380,7 @@ const Configuracoes = () => {
                   label="Frete Médio"
                   tooltip="Custo médio de envio por pedido"
                   icon={Truck}
-                  suffix="R$"
+                  suffix="$"
                   value={costs.avg_shipping}
                   onChange={(v) => updateCost('avg_shipping', v)}
                 />
@@ -424,7 +425,7 @@ const Configuracoes = () => {
                   label="Despesas Fixas Mensais"
                   tooltip="Ferramentas, equipe, hosting, etc. Rateado por dia"
                   icon={DollarSign}
-                  suffix="R$"
+                  suffix="$"
                   value={costs.monthly_fixed_expenses}
                   onChange={(v) => updateCost('monthly_fixed_expenses', v)}
                 />
@@ -451,29 +452,29 @@ const Configuracoes = () => {
           {/* Preview ROI */}
           <Card className="border-border bg-primary/5 border-primary/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Simulação de Lucro (Produto de R$ 197,90 | Custo R$ 45,00)</CardTitle>
+              <CardTitle className="text-sm font-semibold">Simulação de Lucro (Produto de $36.65 | Custo $8.33)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Faturamento</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">R$ {sampleRevenue.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-foreground tabular-nums">{formatUSD(sampleRevenue)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Taxa Gateway</p>
-                  <p className="text-sm font-bold text-destructive tabular-nums">-R$ {gatewayFee.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-destructive tabular-nums">{formatUSD(-(gatewayFee))}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Frete</p>
-                  <p className="text-sm font-bold text-destructive tabular-nums">-R$ {costs.avg_shipping.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-destructive tabular-nums">{formatUSD(-(costs.avg_shipping))}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Impostos</p>
-                  <p className="text-sm font-bold text-destructive tabular-nums">-R$ {tax.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-destructive tabular-nums">{formatUSD(-(tax))}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Lucro Líquido</p>
-                  <p className={`text-sm font-bold tabular-nums ${netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>R$ {netProfit.toFixed(2)}</p>
+                  <p className={`text-sm font-bold tabular-nums ${netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatUSD(netProfit)}</p>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Margem</p>
@@ -510,8 +511,8 @@ const Configuracoes = () => {
                       <TableRow key={p.id} className="border-border">
                         <TableCell className="text-xs font-medium">{p.name}</TableCell>
                         <TableCell className="text-xs font-mono text-muted-foreground">{p.sku || '—'}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {Number(p.cost).toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {Number(p.price).toFixed(2)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatUSD(Number(p.cost))}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatUSD(Number(p.price))}</TableCell>
                         <TableCell className="text-xs text-center">
                           <Badge variant={p.active ? 'default' : 'secondary'} className={p.active ? 'bg-success/20 text-success border-success/30 text-[9px]' : 'text-[9px]'}>
                             {p.active ? 'Ativo' : 'Inativo'}
@@ -534,11 +535,11 @@ const Configuracoes = () => {
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Metas Diárias</CardTitle></CardHeader>
             <CardContent className="space-y-4 max-w-md">
               <div className="space-y-1.5">
-                <Label className="text-xs">Meta de Faturamento (R$)</Label>
+                <Label className="text-xs">Meta de Faturamento ($)</Label>
                 <Input defaultValue="30000" className="h-8 text-xs bg-secondary" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Meta de Lucro (R$)</Label>
+                <Label className="text-xs">Meta de Lucro ($)</Label>
                 <Input defaultValue="10000" className="h-8 text-xs bg-secondary" />
               </div>
               <div className="space-y-1.5">

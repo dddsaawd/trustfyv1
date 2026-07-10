@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatUSD } from '@/lib/currency';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -192,9 +193,9 @@ const Index = () => {
                         <TableCell className="text-xs font-mono text-muted-foreground">{o.order_number?.slice(0, 8)}...</TableCell>
                         <TableCell className="text-xs">{o.customer_name}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">{o.product_name}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {Number(o.gross_value).toFixed(2)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatUSD(Number(o.gross_value))}</TableCell>
                         <TableCell className={cn('text-xs text-right tabular-nums', Number(o.net_profit) >= 0 ? 'text-success' : 'text-destructive')}>
-                          R$ {Number(o.net_profit).toFixed(2)}
+                          {formatUSD(Number(o.net_profit))}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={o.payment_status === 'approved' ? 'default' : o.payment_status === 'pending' ? 'secondary' : 'destructive'}

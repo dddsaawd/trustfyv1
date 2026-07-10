@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD, brlToUsd } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { KPICard } from '@/components/dashboard/KPICard';
@@ -56,7 +57,7 @@ const Financeiro = () => {
     };
   }, [hasRealData, orders, costSettings]);
 
-  const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  const fmt = (v: number) => formatUSD(v);
 
   if (!hasRealData && !isLoading) {
     return (
