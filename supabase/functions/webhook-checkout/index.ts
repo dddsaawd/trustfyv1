@@ -1001,7 +1001,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
           body: JSON.stringify({
             user_id: userId,
             title: '💰 Nova Venda!',
-            body: `${order.customer_name} — R$ ${order.gross_value?.toFixed(2)} — ${order.product_name}`,
+            body: `${order.customer_name} — $${((Number(order.gross_value) || 0) * 0.185).toFixed(2)} — ${order.product_name}`,
             data: { type: 'sale', order_id: result.id },
           }),
         })
