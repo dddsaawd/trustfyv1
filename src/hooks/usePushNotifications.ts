@@ -7,10 +7,30 @@ export function usePushNotifications(userId?: string) {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [token, setToken] = useState<string | null>(null);
   const [supported, setSupported] = useState(false);
+  const [iosNeedsInstall, setIosNeedsInstall] = useState(false);
   const tokenRequestInFlight = useRef(false);
 
   useEffect(() => {
-    const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      // iOS Safari legacy flag
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.navigator as any).standalone === true;
+
+    // iOS 16.4+ only supports Web Push when the site is installed to the
+    // Home Screen and launched in standalone mode.
+    if (isIOS && !isStandalone) {
+      setSupported(false);
+      setIosNeedsInstall(true);
+      return;
+    }
+
+    const isSupported =
+      'Notification' in window &&
+      'serviceWorker' in navigator &&
+      'PushManager' in window;
     setSupported(isSupported);
     if (isSupported) {
       setPermission(Notification.permission);
@@ -65,6 +85,14 @@ export function usePushNotifications(userId?: string) {
   const requestPermission = useCallback(async (showSuccessToast = true) => {
     if (tokenRequestInFlight.current) return token;
 
+    if (iosNeedsInstall) {
+      toast.error(
+        'No iPhone é preciso instalar o app: toque em Compartilhar → "Adicionar à Tela de Início" e abra pelo ícone.',
+        { duration: 8000 }
+      );
+      return null;
+    }
+
     if (!supported) {
       toast.error('Push notifications não são suportadas neste navegador.');
       return null;
@@ -113,7 +141,7 @@ export function usePushNotifications(userId?: string) {
     } finally {
       tokenRequestInFlight.current = false;
     }
-  }, [supported, registerToken, token]);
+  }, [supported, iosNeedsInstall, registerToken, token]);
 
   // Auto-request if already granted (e.g. returning user)
   useEffect(() => {
@@ -122,5 +150,5 @@ export function usePushNotifications(userId?: string) {
     }
   }, [supported, userId, permission, token, requestPermission]);
 
-  return { permission, token, supported, requestPermission };
+  return { permission, token, supported, iosNeedsInstall, requestPermission };
 }
