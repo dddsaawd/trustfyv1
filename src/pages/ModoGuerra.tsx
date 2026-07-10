@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { formatUSD, brlToUsd } from '@/lib/currency';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,7 @@ import { X, DollarSign, ShoppingCart, Zap, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (v: number) => formatUSD(v);
 
 function getBrazilDate(date: Date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
@@ -319,7 +320,7 @@ const ModoGuerra = () => {
                   <YAxis tick={{ fontSize: 9, fill: 'hsl(215 15% 55%)' }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{ background: 'hsl(221 39% 11%)', border: '1px solid hsl(224 20% 18%)', borderRadius: '8px', fontSize: '12px', color: 'hsl(210 20% 92%)' }}
-                    formatter={(value: number, name: string) => name === 'sales' ? [`${value} vendas`, 'Vendas'] : [`R$ ${fmt(value)}`, 'Receita']}
+                    formatter={(value: number, name: string) => name === 'sales' ? [`${value} vendas`, 'Vendas'] : [`${fmt(value)}`, 'Receita']}
                     labelFormatter={(label) => `Horário: ${label}`}
                   />
                   <Bar dataKey="sales" radius={[3, 3, 0, 0]} maxBarSize={20}>

@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD, brlToUsd } from '@/lib/currency';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, ShoppingCart, DollarSign, Megaphone, Package, Zap, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo, useRef, useEffect, useState } from 'react';
 
-const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (v: number) => formatUSD(v);
 
 const ModoEscala = () => {
   const { user } = useAuth();
@@ -98,8 +99,8 @@ const ModoEscala = () => {
   if (!stats) return <DashboardLayout title="Modo Escala"><div /></DashboardLayout>;
 
   const metrics = [
-    { label: 'Lucro Hoje', value: `R$ ${fmt(stats.netProfit)}`, icon: DollarSign, color: 'text-success' },
-    { label: 'Faturamento', value: `R$ ${fmt(stats.grossRevenue)}`, icon: TrendingUp, color: 'text-primary' },
+    { label: 'Lucro Hoje', value: `${fmt(stats.netProfit)}`, icon: DollarSign, color: 'text-success' },
+    { label: 'Faturamento', value: `${fmt(stats.grossRevenue)}`, icon: TrendingUp, color: 'text-primary' },
     { label: 'Vendas', value: `${stats.approvedCount}`, icon: ShoppingCart, color: 'text-foreground' },
     { label: 'ROAS', value: `${stats.roas.toFixed(2)}x`, icon: Zap, color: 'text-warning' },
   ];

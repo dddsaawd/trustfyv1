@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { formatUSD, brlToUsd } from '@/lib/currency';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,7 +30,7 @@ interface DashboardData {
   setManualAdSpend: (v: number | null) => void;
 }
 
-const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (v: number) => formatUSD(v);
 
 function getBrazilDate(date: Date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
@@ -507,23 +508,23 @@ export function useDashboardData(): DashboardData {
   void pixPendingTotal;
 
   const kpis: KPIData[] = [
-    { label: 'Faturamento Bruto', value: `R$ ${fmt(m.grossRevenue)}`, change: pm ? calcChange(m.grossRevenue, pm.grossRevenue) : 0, changeLabel, tooltip: 'Total de vendas brutas no período' },
-    { label: 'Vendas Aprovadas', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
-    { label: 'Gastos com Ads', value: `R$ ${fmt(m.totalAdSpend)}`, change: pm ? calcChange(m.totalAdSpend, pm.totalAdSpend) : 0, changeLabel, tooltip: 'Total investido em anúncios' },
-    { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0, changeLabel, tooltip: 'Receita líquida menos todos os custos' },
+    { label: 'Faturamento Bruto', value: `${fmt(m.grossRevenue)}`, change: pm ? calcChange(m.grossRevenue, pm.grossRevenue) : 0, changeLabel, tooltip: 'Total de vendas brutas no período' },
+    { label: 'Vendas Aprovadas', value: `${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0, changeLabel, tooltip: 'Aprovadas menos reembolsos e chargebacks' },
+    { label: 'Gastos com Ads', value: `${fmt(m.totalAdSpend)}`, change: pm ? calcChange(m.totalAdSpend, pm.totalAdSpend) : 0, changeLabel, tooltip: 'Total investido em anúncios' },
+    { label: 'Lucro Líquido', value: `${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0, changeLabel, tooltip: 'Receita líquida menos todos os custos' },
     { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0, changeLabel, tooltip: 'Faturamento ÷ Gasto com Ads' },
     { label: 'ROI Real', value: `${m.roi.toFixed(1)}%`, change: pm ? calcChange(m.roi, pm.roi) : 0, changeLabel, tooltip: 'Lucro Líquido ÷ Custo Total × 100' },
     { label: 'Margem Líquida', value: `${m.margin.toFixed(1)}%`, change: pm ? calcChange(m.margin, pm.margin) : 0, changeLabel, tooltip: 'Lucro Líquido ÷ Faturamento Líquido × 100' },
-    { label: 'Ticket Médio', value: `R$ ${fmt(m.avgTicket)}`, change: pm ? calcChange(m.avgTicket, pm.avgTicket) : 0, changeLabel, tooltip: 'Valor médio por venda aprovada' },
+    { label: 'Ticket Médio', value: `${fmt(m.avgTicket)}`, change: pm ? calcChange(m.avgTicket, pm.avgTicket) : 0, changeLabel, tooltip: 'Valor médio por venda aprovada' },
     { label: 'Vendas Aprovadas', value: `${m.approvedCount}`, change: pm ? calcChange(m.approvedCount, pm.approvedCount) : 0, changeLabel, tooltip: 'Quantidade de vendas aprovadas' },
     { label: 'Taxa Aprovação', value: `${m.approvalRate.toFixed(1)}%`, change: pm ? calcChange(m.approvalRate, pm.approvalRate) : 0, changeLabel, tooltip: 'Aprovadas ÷ Total de pedidos' },
   ];
 
   const warModeKPIs = [
-    { label: 'Lucro Líquido', value: `R$ ${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0 },
+    { label: 'Lucro Líquido', value: `${fmt(m.netProfit)}`, change: pm ? calcChange(m.netProfit, pm.netProfit) : 0 },
     { label: 'Vendas Aprovadas', value: `${m.approvedCount}`, change: pm ? calcChange(m.approvedCount, pm.approvedCount) : 0 },
     { label: 'ROAS', value: `${m.roas.toFixed(2)}x`, change: pm ? calcChange(m.roas, pm.roas) : 0 },
-    { label: 'Total Pago no Dia', value: `R$ ${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0 },
+    { label: 'Total Pago no Dia', value: `${fmt(m.netRevenue)}`, change: pm ? calcChange(m.netRevenue, pm.netRevenue) : 0 },
   ];
 
   return {
