@@ -1,0 +1,5 @@
+ALTER TABLE public.cost_settings 
+  ADD COLUMN IF NOT EXISTS goal_revenue numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS goal_profit numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS goal_sales integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS goal_roas numeric NOT NULL DEFAULT 0;
