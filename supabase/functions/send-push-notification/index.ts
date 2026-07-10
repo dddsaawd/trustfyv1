@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     if (!serviceAccount.private_key) {
       throw new Error('private_key missing from service account. Keys found: ' + Object.keys(serviceAccount).join(', '))
     }
-    const { user_id, title, body, data } = await req.json()
+    const { user_id, title, body, data, platform_filter } = await req.json()
 
     if (!user_id || !title || !body) {
       return new Response(JSON.stringify({ error: 'Missing user_id, title, or body' }), {
@@ -133,15 +133,26 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Get active device tokens
-    const { data: devices } = await supabase
+    // Get active device tokens (optionally filtered by platform)
+    let query = supabase
       .from('user_devices')
-      .select('device_token')
+      .select('device_token, platform')
       .eq('user_id', user_id)
       .eq('active', true)
+    if (platform_filter) {
+      const platforms = Array.isArray(platform_filter) ? platform_filter : [platform_filter]
+      query = query.in('platform', platforms)
+    }
+    const { data: devices } = await query
 
     if (!devices || devices.length === 0) {
-      return new Response(JSON.stringify({ success: true, sent: 0, message: 'No active devices' }), {
+      return new Response(JSON.stringify({
+        success: true,
+        sent: 0,
+        message: platform_filter
+          ? `Nenhum dispositivo ${Array.isArray(platform_filter) ? platform_filter.join('/') : platform_filter} ativo.`
+          : 'Nenhum dispositivo ativo.',
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
