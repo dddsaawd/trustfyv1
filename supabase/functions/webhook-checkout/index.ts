@@ -677,13 +677,16 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     } else if (isZedyPayload(rawPayload)) {
       console.log('Zedy payload detected, normalizing...', rawPayload.orderId, rawPayload.status)
       payload = normalizeZedyPayload(rawPayload)
+    } else if (isShopifyPayload(rawPayload)) {
+      console.log('Shopify payload detected, normalizing...', rawPayload.id, rawPayload.financial_status, rawPayload.currency)
+      payload = normalizeShopifyPayload(rawPayload)
     } else {
       payload = rawPayload as WebhookPayload
     }
     console.log(JSON.stringify({
       ...auditContext,
       audit: 'webhook_checkout_normalized',
-      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : 'generic',
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : isShopifyPayload(rawPayload) ? 'shopify' : 'generic',
       normalized_payload: payload,
     }))
     
