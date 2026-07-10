@@ -265,6 +265,11 @@ function shopifyFxRate(currency?: string): number {
     CAD: 3.9,
     AUD: 3.5,
     MXN: 0.3,
+    NOK: 0.52,
+    SEK: 0.52,
+    DKK: 0.79,
+    CHF: 6.3,
+    JPY: 0.037,
   }
   return fallback[cur] ?? 1
 }
