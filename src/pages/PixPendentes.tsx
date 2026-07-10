@@ -109,7 +109,7 @@ const PixPendentes = () => {
                     <TableCell className="text-xs font-medium">{pix.customer_name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground font-mono">{pix.customer_phone || '-'}</TableCell>
                     <TableCell className="text-xs max-w-[140px] truncate">{pix.product_name}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums font-medium">R$ {Number(pix.value || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums font-medium">{formatUSD(Number(pix.value || 0))}</TableCell>
                     <TableCell className="text-xs max-w-[160px] truncate text-muted-foreground">{pix.campaign_name || '-'}</TableCell>
                     <TableCell className={cn('text-xs text-right tabular-nums', (pix.minutes_open || 0) > 60 ? 'text-destructive font-medium' : (pix.minutes_open || 0) > 30 ? 'text-warning' : 'text-muted-foreground')}>
                       {pix.minutes_open || 0} min

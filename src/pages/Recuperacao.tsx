@@ -113,7 +113,7 @@ const Recuperacao = () => {
                   <TableCell className="text-xs text-right tabular-nums">{ch.sent}</TableCell>
                   <TableCell className="text-xs text-right tabular-nums text-success">{ch.converted}</TableCell>
                   <TableCell className="text-xs text-right tabular-nums">{ch.rate}%</TableCell>
-                  <TableCell className="text-xs text-right tabular-nums font-medium text-success">R$ {ch.value.toLocaleString()}</TableCell>
+                  <TableCell className="text-xs text-right tabular-nums font-medium text-success">{formatUSD(ch.value)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

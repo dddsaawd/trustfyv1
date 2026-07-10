@@ -53,7 +53,7 @@ export function ManualAdSpendInput({ currentValue, onSubmit, isManual }: ManualA
           </p>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
               <Input
                 type="text"
                 inputMode="decimal"
