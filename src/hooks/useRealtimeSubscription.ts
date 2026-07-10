@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { formatUSD } from '@/lib/currency';
 
 type TableName = 'orders' | 'pix_pending' | 'notifications' | 'campaigns' | 'daily_snapshots';
 
@@ -28,8 +29,8 @@ export function useRealtimeSubscription({ tables, userId, onNewOrder, onNewPix, 
           queryClient.invalidateQueries({ queryKey: ['orders'] });
           queryClient.invalidateQueries({ queryKey: ['kpis'] });
           const order = payload.new as any;
-          toast.success(`Nova venda: ${order.product_name} — R$ ${Number(order.gross_value).toFixed(2).replace('.', ',')}`, {
-            description: `Lucro estimado: R$ ${Number(order.net_profit).toFixed(2).replace('.', ',')}`,
+          toast.success(`Nova venda: ${order.product_name} — ${formatUSD(Number(order.gross_value))}`, {
+            description: `Lucro estimado: ${formatUSD(Number(order.net_profit))}`,
           });
           onNewOrder?.(payload.new);
         }
@@ -41,7 +42,7 @@ export function useRealtimeSubscription({ tables, userId, onNewOrder, onNewPix, 
           queryClient.invalidateQueries({ queryKey: ['pix_pending'] });
           if (payload.eventType === 'INSERT') {
             const pix = payload.new as any;
-            toast.info(`Pix gerado: R$ ${Number(pix.value).toFixed(2).replace('.', ',')} — ${pix.customer_name}`);
+            toast.info(`Pix gerado: ${formatUSD(Number(pix.value))} — ${pix.customer_name}`);
             onNewPix?.(payload.new);
           }
         }
