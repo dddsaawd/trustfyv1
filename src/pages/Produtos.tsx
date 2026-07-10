@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -129,9 +130,9 @@ const Produtos = () => {
                   <TableRow key={i} className="border-border">
                     <TableCell className="text-xs font-bold text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="text-xs font-medium">{p.name}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">R$ {p.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{formatUSD(p.revenue)}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{p.units}</TableCell>
-                    <TableCell className={cn('text-xs text-right tabular-nums font-medium', p.profit >= 0 ? 'text-success' : 'text-destructive')}>R$ {p.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className={cn('text-xs text-right tabular-nums font-medium', p.profit >= 0 ? 'text-success' : 'text-destructive')}>{formatUSD(p.profit)}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{p.margin}%</TableCell>
                   </TableRow>
                 )) : products?.map((p: any, i: number) => (
@@ -139,8 +140,8 @@ const Produtos = () => {
                     <TableCell className="text-xs font-bold text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="text-xs font-medium">{p.name}</TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">{p.sku || '—'}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">R$ {Number(p.cost).toFixed(2)}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">R$ {Number(p.price).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{formatUSD(Number(p.cost))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{formatUSD(Number(p.price))}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={p.active ? 'default' : 'secondary'} className={cn('text-[9px]', p.active && 'bg-success/20 text-success border-success/30')}>
                         {p.active ? 'Ativo' : 'Inativo'}

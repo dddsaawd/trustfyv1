@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -275,12 +276,12 @@ const Vendas = () => {
                         <TableCell className="text-xs max-w-[120px] truncate">{o.product_name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{o.platform || '-'}</TableCell>
                         <TableCell className="text-xs max-w-[140px] truncate text-muted-foreground">{o.campaign_name || '-'}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">R$ {(o.gross_value || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {(o.product_cost || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {(o.gateway_fee || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums text-muted-foreground">R$ {(o.ads_cost_attributed || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatUSD((o.gross_value || 0))}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{formatUSD((o.product_cost || 0))}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{formatUSD((o.gateway_fee || 0))}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums text-muted-foreground">{formatUSD((o.ads_cost_attributed || 0))}</TableCell>
                         <TableCell className={cn('text-xs text-right tabular-nums font-medium', (o.net_profit || 0) >= 0 ? 'text-success' : 'text-destructive')}>
-                          R$ {(o.net_profit || 0).toFixed(2)}
+                          {formatUSD((o.net_profit || 0))}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={o.payment_status === 'approved' ? 'default' : o.payment_status === 'pending' ? 'secondary' : 'destructive'}
