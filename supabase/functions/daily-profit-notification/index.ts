@@ -23,6 +23,16 @@ const MESSAGE_VARIATIONS: { title: string; tagline: string }[] = [
   { title: '🖨️ Lucro imprimindo', tagline: 'Hoje é só o começo. Um dia isso aqui vai parecer pequeno.' },
   { title: '🧱 Construindo o inevitável', tagline: 'Cada lucro confirmado é um tijolo a mais no império.' },
   { title: '🚨 Alerta de vitória parcial', tagline: 'Não comemora demais. Usa isso como combustível e continua esmagando.' },
+  { title: '🌍 Placar de bilionário começou', tagline: 'Isso aqui ainda é pequeno, mas é o primeiro eco da vida absurda que você vai construir.' },
+  { title: '👑 Jogando acima da realidade', tagline: 'Você não está atrás de conforto. Você está atrás de um nível que hoje parece mentira.' },
+  { title: '🚀 Rota dos 9 dígitos', tagline: 'Cada lucro confirmado é um passo saindo do comum e entrando no inimaginável.' },
+  { title: '🏦 Mentalidade de império global', tagline: 'Não é sobre pagar boleto. É sobre construir algo tão grande que ninguém consiga ignorar.' },
+  { title: '💎 Código dos gigantes', tagline: 'Enquanto eles pensam em sobreviver, você pensa em criar uma máquina que imprime liberdade.' },
+  { title: '🛩️ Vida de outro planeta carregando', tagline: 'Jato, cobertura, garagem absurda, conta cheia. Tudo começa com lucro aparecendo no painel.' },
+  { title: '🦅 Escala de magnata', tagline: 'Você não está montando uma operação. Está montando o começo de uma fortuna.' },
+  { title: '🔥 O impossível ficou mais perto', tagline: 'Hoje é um lucro. Amanhã é uma estrutura. Depois é um império que parecia inalcançável.' },
+  { title: '🌐 Dono do próprio mundo', tagline: 'Esse número é só o lembrete: você não nasceu pra jogar pequeno.' },
+  { title: '⚜️ Fortuna em construção', tagline: 'Cada dólar no painel é uma peça da vida bilionária que sua mente ainda está aprendendo a aceitar.' },
 ]
 
 function pickVariation(userId: string, date: string, period: string) {
