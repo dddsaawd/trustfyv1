@@ -166,6 +166,10 @@ export type Database = {
           gateway_pix_fixed: number
           gateway_pix_percent: number
           gateway_provider: string | null
+          goal_profit: number
+          goal_revenue: number
+          goal_roas: number
+          goal_sales: number
           id: string
           marketplace_fee_percent: number
           monthly_fixed_expenses: number
@@ -187,6 +191,10 @@ export type Database = {
           gateway_pix_fixed?: number
           gateway_pix_percent?: number
           gateway_provider?: string | null
+          goal_profit?: number
+          goal_revenue?: number
+          goal_roas?: number
+          goal_sales?: number
           id?: string
           marketplace_fee_percent?: number
           monthly_fixed_expenses?: number
@@ -208,6 +216,10 @@ export type Database = {
           gateway_pix_fixed?: number
           gateway_pix_percent?: number
           gateway_provider?: string | null
+          goal_profit?: number
+          goal_revenue?: number
+          goal_roas?: number
+          goal_sales?: number
           id?: string
           marketplace_fee_percent?: number
           monthly_fixed_expenses?: number
