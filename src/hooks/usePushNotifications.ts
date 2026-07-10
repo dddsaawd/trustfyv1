@@ -110,7 +110,9 @@ export function usePushNotifications(userId?: string) {
       }
 
       // Register service worker
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+      await registration.update().catch(() => undefined);
+      const readyRegistration = await navigator.serviceWorker.ready;
 
       const messaging = getFirebaseMessaging();
       if (!messaging) {
@@ -120,7 +122,7 @@ export function usePushNotifications(userId?: string) {
 
       const fcmToken = await getToken(messaging, {
         vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: registration,
+        serviceWorkerRegistration: readyRegistration,
       });
 
       if (fcmToken) {
