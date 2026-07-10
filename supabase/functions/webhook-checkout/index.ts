@@ -138,6 +138,50 @@ interface ZedyPayload {
   isTest?: boolean
 }
 
+// Shopify payload format (Order webhook — orders/create, orders/paid, orders/updated, refunds/create)
+interface ShopifyLineItem {
+  id?: number | string
+  title?: string
+  name?: string
+  sku?: string | null
+  quantity?: number
+  price?: string | number
+  variant_title?: string | null
+}
+interface ShopifyPayload {
+  id: number | string
+  name?: string
+  order_number?: number | string
+  email?: string
+  phone?: string | null
+  currency?: string
+  presentment_currency?: string
+  total_price?: string | number
+  subtotal_price?: string | number
+  total_tax?: string | number
+  total_shipping_price_set?: { shop_money?: { amount?: string | number; currency_code?: string } }
+  financial_status?: string
+  fulfillment_status?: string | null
+  created_at?: string
+  processed_at?: string
+  updated_at?: string
+  cancelled_at?: string | null
+  customer?: {
+    first_name?: string
+    last_name?: string
+    email?: string
+    phone?: string | null
+  }
+  billing_address?: { city?: string; province?: string; province_code?: string; country?: string }
+  shipping_address?: { city?: string; province?: string; province_code?: string; country?: string }
+  line_items?: ShopifyLineItem[]
+  source_name?: string
+  landing_site?: string | null
+  referring_site?: string | null
+  note_attributes?: Array<{ name?: string; value?: string }>
+  payment_gateway_names?: string[]
+}
+
 // Anti-fraud: blocked name patterns
 const BLOCKED_NAMES = [
   'teste', 'test', 'fulano', 'ciclano', 'beltrano', 'ninguem', 'ninguém',
@@ -192,6 +236,135 @@ function isCorvexPayload(payload: any): payload is CorvexPayload {
 
 function isZedyPayload(payload: any): payload is ZedyPayload {
   return payload?.platform === 'ZedyCheckout' && typeof payload.orderId === 'string' && typeof payload.status === 'string'
+}
+
+function isShopifyPayload(payload: any): payload is ShopifyPayload {
+  if (!payload || typeof payload !== 'object') return false
+  // Shopify order payloads have this signature: numeric id + line_items array + total_price string
+  const hasCore = payload.id != null && Array.isArray(payload.line_items)
+  const hasShopifyFields =
+    typeof payload.financial_status === 'string' ||
+    typeof payload.currency === 'string' ||
+    typeof payload.total_price === 'string' ||
+    typeof payload.total_price === 'number' ||
+    typeof payload.order_number !== 'undefined'
+  return hasCore && hasShopifyFields
+}
+
+function shopifyFxRate(currency?: string): number {
+  const cur = (currency || 'BRL').toUpperCase()
+  if (cur === 'BRL') return 1
+  const envKey = `SHOPIFY_FX_${cur}_BRL`
+  const envVal = Number(Deno.env.get(envKey))
+  if (envVal && envVal > 0) return envVal
+  // Sensible fallback rates (July 2026 approximate). User can override via secret.
+  const fallback: Record<string, number> = {
+    USD: 5.4,
+    EUR: 5.9,
+    GBP: 6.8,
+    CAD: 3.9,
+    AUD: 3.5,
+    MXN: 0.3,
+  }
+  return fallback[cur] ?? 1
+}
+
+function toNum(value: any): number {
+  if (value == null) return 0
+  const n = typeof value === 'number' ? value : parseFloat(String(value))
+  return Number.isFinite(n) ? n : 0
+}
+
+function mapShopifyStatus(financial?: string, cancelled_at?: string | null): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
+  if (cancelled_at) return 'refused'
+  const s = (financial || '').toLowerCase().trim()
+  const map: Record<string, 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback'> = {
+    paid: 'approved',
+    partially_paid: 'approved',
+    authorized: 'approved',
+    pending: 'pending',
+    voided: 'refused',
+    refunded: 'refunded',
+    partially_refunded: 'refunded',
+  }
+  return map[s] || 'pending'
+}
+
+function mapShopifyMethod(gateways?: string[]): 'pix' | 'credit_card' | 'boleto' | 'debit' {
+  const g = (gateways?.[0] || '').toLowerCase()
+  if (g.includes('pix')) return 'pix'
+  if (g.includes('boleto')) return 'boleto'
+  if (g.includes('debit')) return 'debit'
+  return 'credit_card'
+}
+
+function normalizeShopifyPayload(shop: ShopifyPayload): WebhookPayload {
+  const currency = (shop.currency || shop.presentment_currency || 'BRL').toUpperCase()
+  const fx = shopifyFxRate(currency)
+
+  const lineItems = shop.line_items || []
+  const mainItem = lineItems[0]
+  const productNames = lineItems
+    .map((li) => `${cleanText(li.title || li.name) || 'Produto'}${li.quantity && li.quantity > 1 ? ` (${li.quantity}x)` : ''}`)
+    .join(', ') || 'Produto'
+  const mainPrice = toNum(mainItem?.price) * fx
+
+  const grossValue = Math.round(toNum(shop.total_price) * fx * 100) / 100
+  const tax = Math.round(toNum(shop.total_tax) * fx * 100) / 100
+  const shipping = Math.round(toNum(shop.total_shipping_price_set?.shop_money?.amount) * fx * 100) / 100
+
+  const paymentStatus = mapShopifyStatus(shop.financial_status, shop.cancelled_at)
+  const paymentMethod = mapShopifyMethod(shop.payment_gateway_names)
+
+  const event: WebhookPayload['event'] = paymentStatus === 'approved'
+    ? 'order.paid'
+    : paymentStatus === 'refunded'
+      ? 'order.refunded'
+      : paymentStatus === 'pending'
+        ? 'order.created'
+        : 'order.updated'
+
+  const customerName = cleanText(
+    [shop.customer?.first_name, shop.customer?.last_name].filter(Boolean).join(' ')
+  ) || 'Cliente'
+
+  // UTMs may arrive via note_attributes (common for Shopify apps that persist them)
+  const noteAttrs = new Map<string, string>()
+  for (const attr of shop.note_attributes || []) {
+    if (attr?.name && attr?.value != null) noteAttrs.set(String(attr.name).toLowerCase(), String(attr.value))
+  }
+  const utm_source = cleanText(noteAttrs.get('utm_source')) || cleanText(shop.referring_site || undefined)
+  const utm_campaign = cleanText(noteAttrs.get('utm_campaign'))
+  const utm_content = cleanText(noteAttrs.get('utm_content'))
+  const utm_term = cleanText(noteAttrs.get('utm_term'))
+
+  return {
+    event,
+    data: {
+      order_number: String(shop.name || shop.order_number || shop.id),
+      customer_name: customerName,
+      customer_email: cleanText(shop.customer?.email || shop.email),
+      customer_phone: cleanText(shop.customer?.phone || shop.phone || undefined),
+      product_name: productNames,
+      product_sku: cleanText(mainItem?.sku || undefined),
+      product_price: Math.round(mainPrice * 100) / 100 || undefined,
+      product_cost: 0,
+      gross_value: grossValue,
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+      shipping_cost: shipping || undefined,
+      tax: tax || undefined,
+      platform: `shopify${currency !== 'BRL' ? `:${currency}` : ''}`,
+      campaign_name: utm_campaign,
+      utm_source,
+      utm_campaign,
+      utm_content,
+      utm_term,
+      state: cleanText(shop.shipping_address?.province || shop.billing_address?.province),
+      city: cleanText(shop.shipping_address?.city || shop.billing_address?.city),
+      created_at: shop.processed_at || shop.created_at || undefined,
+    },
+  }
 }
 
 function centsToBRL(value?: number | null): number | undefined {
@@ -504,13 +677,16 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     } else if (isZedyPayload(rawPayload)) {
       console.log('Zedy payload detected, normalizing...', rawPayload.orderId, rawPayload.status)
       payload = normalizeZedyPayload(rawPayload)
+    } else if (isShopifyPayload(rawPayload)) {
+      console.log('Shopify payload detected, normalizing...', rawPayload.id, rawPayload.financial_status, rawPayload.currency)
+      payload = normalizeShopifyPayload(rawPayload)
     } else {
       payload = rawPayload as WebhookPayload
     }
     console.log(JSON.stringify({
       ...auditContext,
       audit: 'webhook_checkout_normalized',
-      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : 'generic',
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : isShopifyPayload(rawPayload) ? 'shopify' : 'generic',
       normalized_payload: payload,
     }))
     
