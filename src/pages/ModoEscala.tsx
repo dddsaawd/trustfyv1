@@ -131,7 +131,7 @@ const ModoEscala = () => {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Top Campanha</p>
               </div>
               <p className="text-sm font-semibold text-foreground truncate">{topCampaign.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">ROAS {Number(topCampaign.roas || 0).toFixed(2)}x · Lucro R$ {fmt(Number(topCampaign.profit || 0))}</p>
+              <p className="text-xs text-muted-foreground mt-1">ROAS {Number(topCampaign.roas || 0).toFixed(2)}x · Lucro {fmt(Number(topCampaign.profit || 0))}</p>
             </div>
           )}
           {stats.topProduct && (
@@ -141,7 +141,7 @@ const ModoEscala = () => {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Top Produto</p>
               </div>
               <p className="text-sm font-semibold text-foreground truncate">{stats.topProduct.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stats.topProduct.units} vendas · Lucro R$ {fmt(stats.topProduct.profit)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stats.topProduct.units} vendas · Lucro {fmt(stats.topProduct.profit)}</p>
             </div>
           )}
         </div>

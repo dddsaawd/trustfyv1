@@ -80,7 +80,7 @@ function AnimatedCurrency({ value, className, colorPositive }: { value: number; 
       colorPositive !== undefined && (value >= 0 ? "text-[hsl(var(--success))]" : "text-[hsl(var(--destructive))]"),
       className
     )}>
-      R$ {fmt(value)}
+      {fmt(value)}
     </span>
   );
 }
@@ -293,7 +293,7 @@ const ModoGuerra = () => {
             )}>
               {stats.roas.toFixed(2)}x
             </p>
-            <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1">Ads: R$ {fmt(stats.adSpend)}</p>
+            <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1">Ads: {fmt(stats.adSpend)}</p>
           </div>
         </div>
 
@@ -354,7 +354,7 @@ const ModoGuerra = () => {
                       <p className="text-[10px] text-[hsl(var(--muted-foreground))] truncate">{sale.product_name}</p>
                     </div>
                     <p className="text-sm font-black text-[hsl(var(--success))] tabular-nums whitespace-nowrap ml-2">
-                      R$ {fmt(sale.gross_value)}
+                      {fmt(sale.gross_value)}
                     </p>
                   </div>
                 ))}
