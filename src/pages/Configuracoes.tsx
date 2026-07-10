@@ -103,6 +103,8 @@ const Configuracoes = () => {
     7: 16.99, 8: 17.01, 9: 17.99, 10: 18.01, 11: 18.99, 12: 23.99,
   });
   const [showInstallments, setShowInstallments] = useState(false);
+  const [goals, setGoals] = useState({ revenue: 1000, profit: 800, sales: 20, roas: 3.0 });
+  const [savingGoals, setSavingGoals] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -138,6 +140,12 @@ const Configuracoes = () => {
         pix_discount_percent: Number(data.pix_discount_percent),
         boleto_fee: Number(data.boleto_fee),
         antecipation_fee_percent: Number(data.antecipation_fee_percent),
+      });
+      setGoals({
+        revenue: Number((data as any).goal_revenue ?? 0),
+        profit: Number((data as any).goal_profit ?? 0),
+        sales: Number((data as any).goal_sales ?? 0),
+        roas: Number((data as any).goal_roas ?? 0),
       });
     }
     setLoading(false);
@@ -216,6 +224,25 @@ const Configuracoes = () => {
 
   const updateCost = (key: keyof CostSettings, value: number) => {
     setCosts(prev => ({ ...prev, [key]: value }));
+  };
+
+  const saveGoals = async () => {
+    if (!user) return;
+    setSavingGoals(true);
+    const payload = {
+      goal_revenue: goals.revenue,
+      goal_profit: goals.profit,
+      goal_sales: goals.sales,
+      goal_roas: goals.roas,
+    };
+    const { data: existing } = await supabase
+      .from('cost_settings').select('id').eq('user_id', user.id).single();
+    const { error } = existing
+      ? await supabase.from('cost_settings').update(payload as any).eq('user_id', user.id)
+      : await supabase.from('cost_settings').insert({ ...defaultCosts, ...payload, user_id: user.id } as any);
+    if (error) toast.error('Erro ao salvar metas: ' + error.message);
+    else toast.success('Metas salvas com sucesso!');
+    setSavingGoals(false);
   };
 
   // Simulate ROI preview
