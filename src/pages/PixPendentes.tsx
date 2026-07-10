@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -52,7 +53,7 @@ const PixPendentes = () => {
 
   const kpis = [
     { label: 'Pix Pendentes', value: displayPix.length.toString(), icon: Clock, color: 'text-warning' },
-    { label: 'Valor Total Pendente', value: `R$ ${totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-warning' },
+    { label: 'Valor Total Pendente', value: `${formatUSD({totalPending)}`, icon: DollarSign, color: 'text-warning' },
     { label: 'Tempo Médio Aberto', value: `${avgMinutes} min`, icon: Clock, color: 'text-muted-foreground' },
     { label: 'Urgentes (>60 min)', value: urgentCount.toString(), icon: AlertTriangle, color: 'text-destructive' },
   ];

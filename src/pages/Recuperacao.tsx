@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -67,7 +68,7 @@ const Recuperacao = () => {
   const kpis = [
     { label: 'Recuperações Enviadas', value: stats.sent.toString(), icon: RotateCcw },
     { label: 'Vendas Recuperadas', value: stats.recovered.toString(), icon: TrendingUp },
-    { label: 'Valor Recuperado', value: `R$ ${stats.value_recovered.toLocaleString()}`, icon: DollarSign },
+    { label: 'Valor Recuperado', value: `${formatUSD({stats.value_recovered)}`, icon: DollarSign },
     { label: 'Taxa de Recuperação', value: `${stats.rate}%`, icon: TrendingUp },
     { label: 'Melhor Janela', value: stats.best_window, icon: Clock },
   ];

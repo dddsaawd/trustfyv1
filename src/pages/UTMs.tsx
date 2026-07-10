@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatUSD } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -110,8 +111,8 @@ const UTMs = () => {
                 { key: 'visits', label: 'Visitas', align: 'right', format: v => v.toLocaleString() },
                 { key: 'checkouts', label: 'Checkouts', align: 'right', format: v => v.toLocaleString() },
                 { key: 'sales', label: 'Vendas', align: 'right' },
-                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `R$ ${v.toLocaleString()}` },
-                { key: 'profit', label: 'Lucro', align: 'right', format: v => `R$ ${v.toLocaleString()}`, colorProfit: true },
+                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `${formatUSD({v)}` },
+                { key: 'profit', label: 'Lucro', align: 'right', format: v => `${formatUSD({v)}`, colorProfit: true },
                 { key: 'roas', label: 'ROAS', align: 'right', format: v => `${v.toFixed(2)}x` },
               ])}
             </CardContent>
@@ -127,8 +128,8 @@ const UTMs = () => {
                 { key: 'visits', label: 'Visitas', align: 'right', format: v => v.toLocaleString() },
                 { key: 'checkouts', label: 'Checkouts', align: 'right', format: v => v.toLocaleString() },
                 { key: 'sales', label: 'Vendas', align: 'right' },
-                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `R$ ${v.toLocaleString()}` },
-                { key: 'profit', label: 'Lucro', align: 'right', format: v => `R$ ${v.toLocaleString()}`, colorProfit: true },
+                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `${formatUSD({v)}` },
+                { key: 'profit', label: 'Lucro', align: 'right', format: v => `${formatUSD({v)}`, colorProfit: true },
               ])}
             </CardContent>
           </Card>
@@ -141,8 +142,8 @@ const UTMs = () => {
               {renderTable(displayData.filter((r: any) => r.content), [
                 { key: 'content', label: 'Conteúdo' },
                 { key: 'sales', label: 'Vendas', align: 'right' },
-                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `R$ ${v.toLocaleString()}` },
-                { key: 'profit', label: 'Lucro', align: 'right', format: v => `R$ ${v.toLocaleString()}`, colorProfit: true },
+                { key: 'revenue', label: 'Faturamento', align: 'right', format: v => `${formatUSD({v)}` },
+                { key: 'profit', label: 'Lucro', align: 'right', format: v => `${formatUSD({v)}`, colorProfit: true },
                 { key: 'roas', label: 'ROAS', align: 'right', format: v => `${v.toFixed(2)}x` },
               ])}
             </CardContent>
