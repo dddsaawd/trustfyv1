@@ -68,7 +68,7 @@ const Recuperacao = () => {
   const kpis = [
     { label: 'Recuperações Enviadas', value: stats.sent.toString(), icon: RotateCcw },
     { label: 'Vendas Recuperadas', value: stats.recovered.toString(), icon: TrendingUp },
-    { label: 'Valor Recuperado', value: `${formatUSD({stats.value_recovered)}`, icon: DollarSign },
+    { label: 'Valor Recuperado', value: formatUSD(stats.value_recovered), icon: DollarSign },
     { label: 'Taxa de Recuperação', value: `${stats.rate}%`, icon: TrendingUp },
     { label: 'Melhor Janela', value: stats.best_window, icon: Clock },
   ];

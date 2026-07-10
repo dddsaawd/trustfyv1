@@ -53,7 +53,7 @@ const PixPendentes = () => {
 
   const kpis = [
     { label: 'Pix Pendentes', value: displayPix.length.toString(), icon: Clock, color: 'text-warning' },
-    { label: 'Valor Total Pendente', value: `${formatUSD({totalPending)}`, icon: DollarSign, color: 'text-warning' },
+    { label: 'Valor Total Pendente', value: formatUSD(totalPending), icon: DollarSign, color: 'text-warning' },
     { label: 'Tempo Médio Aberto', value: `${avgMinutes} min`, icon: Clock, color: 'text-muted-foreground' },
     { label: 'Urgentes (>60 min)', value: urgentCount.toString(), icon: AlertTriangle, color: 'text-destructive' },
   ];
