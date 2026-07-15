@@ -865,7 +865,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
 
         const { data: newOrder, error: orderError } = await supabase
           .from('orders')
-          .insert(orderRecord)
+          .upsert(orderRecord, { onConflict: 'user_id,order_number', ignoreDuplicates: false })
           .select()
           .single()
 
