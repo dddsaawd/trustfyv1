@@ -583,6 +583,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
     event,
     data: {
       order_number: zedy.orderId,
+      external_id: zedy.orderId ? `zedy:${zedy.orderId}` : undefined,
       customer_name: cleanText(zedy.customer?.name) || 'Cliente',
       customer_email: cleanText(zedy.customer?.email),
       customer_phone: cleanText(zedy.customer?.phone),
