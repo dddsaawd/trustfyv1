@@ -348,6 +348,7 @@ function normalizeShopifyPayload(shop: ShopifyPayload): WebhookPayload {
     event,
     data: {
       order_number: String(shop.name || shop.order_number || shop.id),
+      external_id: shop.id != null ? `shopify:${shop.id}` : undefined,
       customer_name: customerName,
       customer_email: cleanText(shop.customer?.email || shop.email),
       customer_phone: cleanText(shop.customer?.phone || shop.phone || undefined),
