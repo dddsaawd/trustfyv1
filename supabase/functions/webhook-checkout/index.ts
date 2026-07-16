@@ -1068,6 +1068,27 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
   } catch (error) {
     console.error('Webhook error:', error)
     const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+
+    // Dead-letter queue: persist the failure so it can be reviewed / reprocessed
+    try {
+      if (capturedSupabase && capturedRawPayload) {
+        await capturedSupabase.from('webhook_failures').insert({
+          user_id: capturedUserId,
+          source: capturedSource,
+          event_type: capturedEvent,
+          external_id: capturedExternalId,
+          error_message: message,
+          error_stack: stack || null,
+          raw_payload: capturedRawPayload,
+          normalized_payload: capturedNormalized || null,
+          status: 'pending',
+        })
+      }
+    } catch (logErr) {
+      console.error('Failed to write webhook_failures row:', logErr)
+    }
+
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
