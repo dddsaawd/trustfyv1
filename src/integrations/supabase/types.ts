@@ -486,6 +486,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          external_id: string | null
           gateway_fee: number | null
           gross_value: number
           id: string
@@ -516,6 +517,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          external_id?: string | null
           gateway_fee?: number | null
           gross_value?: number
           id?: string
@@ -546,6 +548,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          external_id?: string | null
           gateway_fee?: number | null
           gross_value?: number
           id?: string
@@ -868,6 +871,60 @@ export type Database = {
           term?: string | null
           user_id?: string
           visits?: number | null
+        }
+        Relationships: []
+      }
+      webhook_failures: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          event_type: string | null
+          external_id: string | null
+          id: string
+          last_retry_at: string | null
+          normalized_payload: Json | null
+          raw_payload: Json
+          resolved_at: string | null
+          retry_count: number
+          source: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          event_type?: string | null
+          external_id?: string | null
+          id?: string
+          last_retry_at?: string | null
+          normalized_payload?: Json | null
+          raw_payload: Json
+          resolved_at?: string | null
+          retry_count?: number
+          source: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          event_type?: string | null
+          external_id?: string | null
+          id?: string
+          last_retry_at?: string | null
+          normalized_payload?: Json | null
+          raw_payload?: Json
+          resolved_at?: string | null
+          retry_count?: number
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
