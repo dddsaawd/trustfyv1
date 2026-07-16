@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface WebhookOrder {
   order_number: string
+  external_id?: string
   customer_name: string
   customer_email?: string
   customer_phone?: string
