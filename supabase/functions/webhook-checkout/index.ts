@@ -467,6 +467,7 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
 
   const order: WebhookOrder = {
     order_number: corvex.id,
+    external_id: corvex.id ? `corvex:${corvex.id}` : undefined,
     customer_name: corvex.client?.name || 'Cliente',
     customer_email: corvex.client?.email || undefined,
     customer_phone: corvex.client?.phone || undefined,
