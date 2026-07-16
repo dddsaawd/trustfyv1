@@ -615,9 +615,18 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     return new Response(null, { headers: corsHeaders })
   }
 
+  let capturedUserId: string | null = null
+  let capturedRawPayload: any = null
+  let capturedNormalized: any = null
+  let capturedSource = 'generic'
+  let capturedEvent: string | null = null
+  let capturedExternalId: string | null = null
+  let capturedSupabase: any = null
+
   try {
     const url = new URL(req.url)
     const userId = url.searchParams.get('user_id')
+    capturedUserId = userId
     const webhookSecret = req.headers.get('x-webhook-secret') || url.searchParams.get('secret')
 
     if (!userId) {
@@ -631,6 +640,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
+    capturedSupabase = supabase
 
     // Verify user exists
     const { data: profile } = await supabase
@@ -671,6 +681,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
       .single()
 
     const rawPayload = await req.json()
+    capturedRawPayload = rawPayload
     
     // Auto-detect checkout-specific payloads and normalize
     let payload: WebhookPayload
@@ -683,15 +694,21 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     if (isCorvexPayload(rawPayload)) {
       console.log('Corvex payload detected, normalizing...', rawPayload.event)
       payload = normalizeCorvexPayload(rawPayload)
+      capturedSource = 'corvex'
     } else if (isZedyPayload(rawPayload)) {
       console.log('Zedy payload detected, normalizing...', rawPayload.orderId, rawPayload.status)
       payload = normalizeZedyPayload(rawPayload)
+      capturedSource = 'zedy'
     } else if (isShopifyPayload(rawPayload)) {
       console.log('Shopify payload detected, normalizing...', rawPayload.id, rawPayload.financial_status, rawPayload.currency)
       payload = normalizeShopifyPayload(rawPayload)
+      capturedSource = 'shopify'
     } else {
       payload = rawPayload as WebhookPayload
     }
+    capturedNormalized = payload
+    capturedEvent = payload?.event ?? null
+    capturedExternalId = (payload?.data as any)?.external_id || (payload?.data as any)?.order_number || null
     console.log(JSON.stringify({
       ...auditContext,
       audit: 'webhook_checkout_normalized',
