@@ -783,9 +783,8 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
         const netProfit = grossValue - productCost - gatewayFee - adsCost - shippingCost - tax
 
         // Try to update existing order first to avoid duplicate sales when checkout retries the webhook
-        const { data: updated } = await supabase
-            .from('orders')
-            .update({
+        // Prefer external_id (stable across event types) over order_number (may vary between events)
+        const updatePayload = {
               customer_name: order.customer_name,
               customer_email: order.customer_email || null,
               customer_phone: order.customer_phone || null,
@@ -808,11 +807,29 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
               utm_term: order.utm_term || null,
               state: order.state || null,
               city: order.city || null,
-            })
+        }
+
+        let updated: any = null
+        if (order.external_id) {
+          const { data } = await supabase
+            .from('orders')
+            .update(updatePayload)
+            .eq('external_id', order.external_id)
+            .eq('user_id', userId)
+            .select()
+            .maybeSingle()
+          updated = data
+        }
+        if (!updated) {
+          const { data } = await supabase
+            .from('orders')
+            .update(updatePayload)
             .eq('order_number', order.order_number)
             .eq('user_id', userId)
             .select()
-            .single()
+            .maybeSingle()
+          updated = data
+        }
 
         if (updated) {
           result = updated
@@ -842,6 +859,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
         const orderRecord = {
             user_id: userId,
             order_number: order.order_number,
+            external_id: order.external_id || null,
             customer_name: order.customer_name,
             customer_email: order.customer_email || null,
             customer_phone: order.customer_phone || null,
