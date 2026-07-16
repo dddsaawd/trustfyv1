@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, Megaphone, Package, Link2, DollarSign,
-  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords, Shield
+  Clock, RotateCcw, FileText, Bell, Puzzle, Settings, TrendingUp, Swords, Shield, Activity
 } from 'lucide-react';
 import trustfyLogo from '@/assets/trustfy-logo.png';
 import { NavLink } from '@/components/NavLink';
@@ -26,6 +26,7 @@ const secondaryItems = [
   { title: 'Relatórios', url: '/relatorios', icon: FileText },
   { title: 'Notificações', url: '/notificacoes', icon: Bell },
   { title: 'Integrações', url: '/integracoes', icon: Puzzle },
+  { title: 'Health Check', url: '/health', icon: Activity },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
 

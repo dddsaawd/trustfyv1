@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface WebhookOrder {
   order_number: string
+  external_id?: string
   customer_name: string
   customer_email?: string
   customer_phone?: string
@@ -347,6 +348,7 @@ function normalizeShopifyPayload(shop: ShopifyPayload): WebhookPayload {
     event,
     data: {
       order_number: String(shop.name || shop.order_number || shop.id),
+      external_id: shop.id != null ? `shopify:${shop.id}` : undefined,
       customer_name: customerName,
       customer_email: cleanText(shop.customer?.email || shop.email),
       customer_phone: cleanText(shop.customer?.phone || shop.phone || undefined),
@@ -465,6 +467,7 @@ function normalizeCorvexPayload(corvex: CorvexPayload): WebhookPayload {
 
   const order: WebhookOrder = {
     order_number: corvex.id,
+    external_id: corvex.id ? `corvex:${corvex.id}` : undefined,
     customer_name: corvex.client?.name || 'Cliente',
     customer_email: corvex.client?.email || undefined,
     customer_phone: corvex.client?.phone || undefined,
@@ -580,6 +583,7 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
     event,
     data: {
       order_number: zedy.orderId,
+      external_id: zedy.orderId ? `zedy:${zedy.orderId}` : undefined,
       customer_name: cleanText(zedy.customer?.name) || 'Cliente',
       customer_email: cleanText(zedy.customer?.email),
       customer_phone: cleanText(zedy.customer?.phone),
@@ -611,9 +615,18 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     return new Response(null, { headers: corsHeaders })
   }
 
+  let capturedUserId: string | null = null
+  let capturedRawPayload: any = null
+  let capturedNormalized: any = null
+  let capturedSource = 'generic'
+  let capturedEvent: string | null = null
+  let capturedExternalId: string | null = null
+  let capturedSupabase: any = null
+
   try {
     const url = new URL(req.url)
     const userId = url.searchParams.get('user_id')
+    capturedUserId = userId
     const webhookSecret = req.headers.get('x-webhook-secret') || url.searchParams.get('secret')
 
     if (!userId) {
@@ -627,6 +640,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
+    capturedSupabase = supabase
 
     // Verify user exists
     const { data: profile } = await supabase
@@ -667,6 +681,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
       .single()
 
     const rawPayload = await req.json()
+    capturedRawPayload = rawPayload
     
     // Auto-detect checkout-specific payloads and normalize
     let payload: WebhookPayload
@@ -679,15 +694,21 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     if (isCorvexPayload(rawPayload)) {
       console.log('Corvex payload detected, normalizing...', rawPayload.event)
       payload = normalizeCorvexPayload(rawPayload)
+      capturedSource = 'corvex'
     } else if (isZedyPayload(rawPayload)) {
       console.log('Zedy payload detected, normalizing...', rawPayload.orderId, rawPayload.status)
       payload = normalizeZedyPayload(rawPayload)
+      capturedSource = 'zedy'
     } else if (isShopifyPayload(rawPayload)) {
       console.log('Shopify payload detected, normalizing...', rawPayload.id, rawPayload.financial_status, rawPayload.currency)
       payload = normalizeShopifyPayload(rawPayload)
+      capturedSource = 'shopify'
     } else {
       payload = rawPayload as WebhookPayload
     }
+    capturedNormalized = payload
+    capturedEvent = payload?.event ?? null
+    capturedExternalId = (payload?.data as any)?.external_id || (payload?.data as any)?.order_number || null
     console.log(JSON.stringify({
       ...auditContext,
       audit: 'webhook_checkout_normalized',
@@ -779,9 +800,8 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
         const netProfit = grossValue - productCost - gatewayFee - adsCost - shippingCost - tax
 
         // Try to update existing order first to avoid duplicate sales when checkout retries the webhook
-        const { data: updated } = await supabase
-            .from('orders')
-            .update({
+        // Prefer external_id (stable across event types) over order_number (may vary between events)
+        const updatePayload = {
               customer_name: order.customer_name,
               customer_email: order.customer_email || null,
               customer_phone: order.customer_phone || null,
@@ -804,11 +824,29 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
               utm_term: order.utm_term || null,
               state: order.state || null,
               city: order.city || null,
-            })
+        }
+
+        let updated: any = null
+        if (order.external_id) {
+          const { data } = await supabase
+            .from('orders')
+            .update(updatePayload)
+            .eq('external_id', order.external_id)
+            .eq('user_id', userId)
+            .select()
+            .maybeSingle()
+          updated = data
+        }
+        if (!updated) {
+          const { data } = await supabase
+            .from('orders')
+            .update(updatePayload)
             .eq('order_number', order.order_number)
             .eq('user_id', userId)
             .select()
-            .single()
+            .maybeSingle()
+          updated = data
+        }
 
         if (updated) {
           result = updated
@@ -838,6 +876,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
         const orderRecord = {
             user_id: userId,
             order_number: order.order_number,
+            external_id: order.external_id || null,
             customer_name: order.customer_name,
             customer_email: order.customer_email || null,
             customer_phone: order.customer_phone || null,
@@ -1029,6 +1068,27 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
   } catch (error) {
     console.error('Webhook error:', error)
     const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+
+    // Dead-letter queue: persist the failure so it can be reviewed / reprocessed
+    try {
+      if (capturedSupabase && capturedRawPayload) {
+        await capturedSupabase.from('webhook_failures').insert({
+          user_id: capturedUserId,
+          source: capturedSource,
+          event_type: capturedEvent,
+          external_id: capturedExternalId,
+          error_message: message,
+          error_stack: stack || null,
+          raw_payload: capturedRawPayload,
+          normalized_payload: capturedNormalized || null,
+          status: 'pending',
+        })
+      }
+    } catch (logErr) {
+      console.error('Failed to write webhook_failures row:', logErr)
+    }
+
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
