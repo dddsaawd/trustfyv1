@@ -48,7 +48,7 @@ export function usePushNotifications(userId?: string) {
       
       // Play sale notification sound
       try {
-        const audio = new Audio('/sounds/sale-notification.mp3');
+        const audio = new Audio('/sounds/shopify-sale.mp3');
         audio.volume = 0.7;
         audio.play().catch(() => {});
       } catch (e) {}
