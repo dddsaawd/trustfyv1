@@ -48,7 +48,7 @@ export function usePushNotifications(userId?: string) {
       
       // Play sale notification sound
       try {
-        const audio = new Audio('/sounds/sale-notification.mp3');
+        const audio = new Audio('/sounds/shopify-sale.mp3');
         audio.volume = 0.7;
         audio.play().catch(() => {});
       } catch (e) {}
@@ -57,6 +57,21 @@ export function usePushNotifications(userId?: string) {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Toca o som quando o push chega em background e há aba aberta
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type !== 'PLAY_SALE_SOUND') return;
+      try {
+        const audio = new Audio('/sounds/shopify-sale.mp3');
+        audio.volume = 0.8;
+        audio.play().catch(() => {});
+      } catch (e) {}
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
 
   const registerToken = useCallback(async (fcmToken: string) => {

@@ -22,6 +22,10 @@ self.addEventListener('activate', (event) => {
 
 messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {};
+  // Avisa abas abertas para tocar o som de venda
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    list.forEach((c) => c.postMessage({ type: 'PLAY_SALE_SOUND' }));
+  });
   self.registration.showNotification(title || 'TRUSTFY', {
     body: body || 'Nova atualização',
     icon: '/icons/icon-192.png',
@@ -30,6 +34,8 @@ messaging.onBackgroundMessage((payload) => {
     tag: payload.data?.type || 'trustfy-push',
     renotify: true,
     requireInteraction: true,
+    silent: false,
+    vibrate: [200, 100, 200],
   });
 });
 
