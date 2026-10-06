@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PencilLine, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usdToBrl } from '@/lib/currency';
 
 interface ManualAdSpendInputProps {
   currentValue: number;
