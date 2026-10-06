@@ -159,8 +159,7 @@ Deno.serve(async (req) => {
         adSpendBRL,
         ratesByUser[userId] || {},
       )
-      const profitUSD = netProfit * BRL_TO_USD
-      const value = `$${profitUSD.toFixed(2)}`
+      const value = `R$ ${netProfit.toFixed(2).replace('.', ',')}`
       const variation = pickVariation(userId, date, period)
       const title = variation.title
       const body = `Até agora: ${value} · ${approvedCount} venda${approvedCount === 1 ? '' : 's'} aprovada${approvedCount === 1 ? '' : 's'}\n${variation.tagline}`
@@ -176,7 +175,7 @@ Deno.serve(async (req) => {
             user_id: userId,
             title,
             body,
-            data: { type: 'daily_profit', period, profit_usd: profitUSD.toFixed(2) },
+            data: { type: 'daily_profit', period, profit_brl: netProfit.toFixed(2) },
           }),
         })
         sent++
