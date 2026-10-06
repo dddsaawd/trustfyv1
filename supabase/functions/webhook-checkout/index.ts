@@ -777,7 +777,7 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
     console.log(JSON.stringify({
       ...auditContext,
       audit: 'webhook_checkout_normalized',
-      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : isShopifyPayload(rawPayload) ? 'shopify' : 'generic',
+      source: isZedyPayload(rawPayload) ? 'zedy' : isCorvexPayload(rawPayload) ? 'corvex' : isShopifyPayload(rawPayload) ? 'shopify' : isOmegaPayload(rawPayload) ? 'omega' : 'generic',
       normalized_payload: payload,
     }))
     
