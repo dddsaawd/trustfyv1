@@ -5,7 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const BRL_TO_USD = 0.185
 
 const MESSAGE_VARIATIONS: { title: string; tagline: string }[] = [
   { title: '💰 Lucro ao vivo', tagline: 'Não acaba até você vencer. Esse número ainda vai virar rotina.' },
