@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PencilLine, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usdToBrl } from '@/lib/currency';
 
 interface ManualAdSpendInputProps {
   currentValue: number;
@@ -19,9 +18,8 @@ export function ManualAdSpendInput({ currentValue, onSubmit, isManual }: ManualA
   const handleSubmit = () => {
     const num = parseFloat(value.replace(',', '.'));
     if (!isNaN(num) && num >= 0) {
-      // Usuário digita em USD; convertemos para BRL antes de persistir
-      // (a base de dados armazena tudo em BRL).
-      onSubmit(usdToBrl(num));
+      // Usuário digita em BRL (mesma moeda armazenada no banco).
+      onSubmit(num);
       setOpen(false);
       setValue('');
     }
@@ -56,7 +54,7 @@ export function ManualAdSpendInput({ currentValue, onSubmit, isManual }: ManualA
           </p>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
               <Input
                 type="text"
                 inputMode="decimal"
