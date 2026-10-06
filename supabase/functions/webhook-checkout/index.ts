@@ -608,7 +608,68 @@ function normalizeZedyPayload(zedy: ZedyPayload): WebhookPayload {
   }
 }
 
-export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload }
+// ============= Omega Payments =============
+function isOmegaPayload(payload: any): boolean {
+  return !!payload && typeof payload.event === 'string' && /^TRANSACTION_/i.test(payload.event) &&
+    payload.transaction && typeof payload.transaction === 'object'
+}
+
+function mapOmegaStatus(event: string, status?: string): 'approved' | 'pending' | 'refused' | 'refunded' | 'chargeback' {
+  const e = (event || '').toUpperCase()
+  const s = (status || '').toUpperCase()
+  if (e.includes('CHARGEBACK') || s.includes('CHARGEBACK') || s === 'DISPUTED') return 'chargeback'
+  if (e.includes('REFUND') || s.includes('REFUND')) return 'refunded'
+  if (e.includes('PAID') || e.includes('APPROVED') || e.includes('COMPLETED') || ['COMPLETED', 'PAID', 'APPROVED'].includes(s)) return 'approved'
+  if (e.includes('CANCEL') || e.includes('FAIL') || e.includes('REFUSED') || e.includes('EXPIRED') ||
+      ['CANCELED', 'CANCELLED', 'FAILED', 'REFUSED', 'EXPIRED', 'REJECTED'].includes(s)) return 'refused'
+  return 'pending'
+}
+
+function mapOmegaMethod(method?: string): 'pix' | 'credit_card' | 'boleto' | 'debit' {
+  const m = (method || '').toUpperCase()
+  if (m.includes('CREDIT') || m.includes('CARD')) return 'credit_card'
+  if (m.includes('BOLETO') || m.includes('BILLET')) return 'boleto'
+  if (m.includes('DEBIT')) return 'debit'
+  return 'pix'
+}
+
+function normalizeOmegaPayload(p: any): WebhookPayload {
+  const tx = p.transaction || {}
+  const items: any[] = Array.isArray(p.orderItems) ? p.orderItems : []
+  const status = mapOmegaStatus(p.event, tx.status)
+  const fx = shopifyFxRate(tx.currency || tx.originalCurrency || 'BRL')
+  const gross = toNum(tx.amount ?? tx.originalAmount) * fx
+  const commission = tx.commissionAmount != null ? toNum(tx.commissionAmount) * fx : undefined
+  const tp = p.trackProps || {}
+  const genericName = !p.client?.name || /^cliente\b/i.test(p.client.name)
+  const name = (genericName && tx.pixMetadata?.payerName) || p.client?.name || 'Cliente'
+  const event = status === 'approved' ? 'order.paid' : status === 'refunded' || status === 'chargeback' ? 'order.refunded' : 'order.updated'
+  return {
+    event: event as any,
+    data: {
+      order_number: String(tx.identifier || p.orderId || tx.id),
+      external_id: `omega:${p.orderId || tx.id}`,
+      customer_name: name,
+      customer_email: p.client?.email || undefined,
+      customer_phone: p.client?.phone || undefined,
+      product_name: items.map(i => i?.product?.name).filter(Boolean).join(' + ') || 'Produto',
+      product_sku: items[0]?.product?.externalId || undefined,
+      gross_value: Math.round(gross * 100) / 100,
+      gateway_fee: commission != null ? Math.max(0, Math.round((gross - commission) * 100) / 100) : undefined,
+      payment_method: mapOmegaMethod(tx.paymentMethod),
+      payment_status: status,
+      installments: tx.installments || 1,
+      utm_source: cleanText(tp.utm_source) || cleanText(tp.src),
+      utm_campaign: cleanText(tp.utm_campaign),
+      utm_content: cleanText(tp.utm_content),
+      utm_term: cleanText(tp.utm_term),
+      campaign_name: cleanText(tp.utm_campaign),
+      created_at: tx.payedAt || tx.createdAt || undefined,
+    } as WebhookOrder,
+  }
+}
+
+export { centsToBRL, cleanText, isZedyPayload, mapZedyMethod, mapZedyStatus, normalizeZedyPayload, isOmegaPayload, normalizeOmegaPayload }
 
 export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOverride?: any): Promise<Response> => {
   if (req.method === 'OPTIONS') {
@@ -703,6 +764,10 @@ export const handleWebhookCheckoutWithClient = async (req: Request, supabaseOver
       console.log('Shopify payload detected, normalizing...', rawPayload.id, rawPayload.financial_status, rawPayload.currency)
       payload = normalizeShopifyPayload(rawPayload)
       capturedSource = 'shopify'
+    } else if (isOmegaPayload(rawPayload)) {
+      console.log('Omega payload detected, normalizing...', rawPayload.event, rawPayload.transaction?.status)
+      payload = normalizeOmegaPayload(rawPayload)
+      capturedSource = 'omega'
     } else {
       payload = rawPayload as WebhookPayload
     }
